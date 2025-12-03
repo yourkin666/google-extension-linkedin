@@ -292,9 +292,8 @@ class FloatingPanel {
       const userData = window.scrapeUserProfile ? window.scrapeUserProfile() : {};
       this.userData = userData;
       
-      // 获取邮箱（模拟API）
-      const email = await this.fetchEmail();
-      this.userData.email = email;
+      // 设置邮箱为暂无（不调用fetchEmail）
+      this.userData.email = '暂无邮箱';
       
       // 渲染数据
       this.renderUserData();
@@ -323,20 +322,21 @@ class FloatingPanel {
         if (nameElement && nameElement.textContent.trim()) {
           // 找到内容了，清除超时定时器
           if (timeoutId) clearTimeout(timeoutId);
-          // 再等待一小段时间确保完全渲染
-          setTimeout(resolve, 800);
+          if (checkIntervalId) clearTimeout(checkIntervalId);
+          // 立即返回，不再额外等待
+          resolve();
         } else {
           // 没找到，继续等待
-          checkIntervalId = setTimeout(checkContent, 200);
+          checkIntervalId = setTimeout(checkContent, 100);
         }
       };
       
-      // 开始检查（最多等待10秒）
+      // 开始检查（最多等待5秒）
       timeoutId = setTimeout(() => {
         console.warn('CoLink: 等待页面加载超时');
         if (checkIntervalId) clearTimeout(checkIntervalId);
         resolve();
-      }, 10000);
+      }, 5000);
       
       checkContent();
     });
@@ -344,8 +344,8 @@ class FloatingPanel {
   
   async fetchEmail() {
     // TODO: 替换为真实API
-    // 模拟API延迟
-    await new Promise(resolve => setTimeout(resolve, 500));
+    // 模拟API延迟（优化：从500ms减少到100ms）
+    await new Promise(resolve => setTimeout(resolve, 100));
     
     // 返回模拟邮箱
     const name = this.userData?.name || 'user';
