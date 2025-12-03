@@ -3,13 +3,46 @@
 // 监听插件图标点击
 chrome.action.onClicked.addListener((tab) => {
   // 打开侧边栏
-  chrome.sidePanel.open({ windowId: tab.windowId });
+  chrome.sidePanel.open({ windowId: tab.windowId })
+    .then(() => {
+      console.log('侧边栏已打开（通过图标点击）');
+    })
+    .catch((error) => {
+      console.error('打开侧边栏失败：', error);
+    });
 });
 
 // 监听来自 content script 的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log('收到消息：', message);
+  
   if (message.type === 'OPEN_SIDEPANEL') {
-    chrome.sidePanel.open({ windowId: sender.tab.windowId });
+    if (sender.tab && sender.tab.windowId) {
+      chrome.sidePanel.open({ windowId: sender.tab.windowId })
+        .then(() => {
+          console.log('侧边栏已打开（通过浮动按钮）');
+          sendResponse({ success: true });
+        })
+        .catch((error) => {
+          console.error('打开侧边栏失败：', error);
+          sendResponse({ success: false, error: error.message });
+        });
+      return true; // 保持消息通道开启以支持异步响应
+    } else {
+      console.error('无法获取 tab 信息');
+      sendResponse({ success: false, error: '无法获取 tab 信息' });
+    }
+  }
+  
+  // 转发侧边栏关闭消息给 content script
+  if (message.type === 'SIDEPANEL_CLOSED_FROM_PANEL') {
+    chrome.tabs.query({ url: "https://www.linkedin.com/*" }, (tabs) => {
+      tabs.forEach(tab => {
+        chrome.tabs.sendMessage(tab.id, { type: 'SIDEPANEL_CLOSED' }).catch(() => {
+          // 忽略错误
+        });
+      });
+    });
   }
 });
 

@@ -338,6 +338,32 @@ async function loadFavorites() {
   });
 }
 
+// 监听页面可见性变化（侧边栏关闭/隐藏）
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    // 侧边栏被隐藏或关闭
+    console.log('侧边栏已隐藏');
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0] && tabs[0].url?.includes('linkedin.com')) {
+        chrome.tabs.sendMessage(tabs[0].id, { type: 'SIDEPANEL_CLOSED' }).catch(() => {
+          // 忽略错误
+        });
+      }
+    });
+  }
+});
+
+// 监听页面卸载（侧边栏完全关闭）
+window.addEventListener('beforeunload', () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    if (tabs[0] && tabs[0].url?.includes('linkedin.com')) {
+      chrome.tabs.sendMessage(tabs[0].id, { type: 'SIDEPANEL_CLOSED' }).catch(() => {
+        // 忽略错误
+      });
+    }
+  });
+});
+
 // 启动应用
 init();
 
