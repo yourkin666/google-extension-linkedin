@@ -217,6 +217,17 @@ function showCurrentUser() {
   
   // 更新待筛选数量
   elements.pendingCount.textContent = similarUsers.length - currentIndex;
+  
+  // 跳转到当前用户的 LinkedIn 页面
+  const currentUser = similarUsers[currentIndex];
+  if (currentUser && currentUser.publicIdentifier) {
+    const url = `https://www.linkedin.com/in/${currentUser.publicIdentifier}/`;
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      if (tabs[0]) {
+        chrome.tabs.update(tabs[0].id, { url });
+      }
+    });
+  }
 }
 
 // 跳过
