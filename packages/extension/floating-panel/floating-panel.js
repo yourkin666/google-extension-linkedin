@@ -30,7 +30,7 @@ class FloatingPanel {
     if (!this.panel) return;
     
     // 绑定事件
-    // this.bindDragEvents(); // 已删除头部拖动区域
+    this.bindDragEvents();
     this.bindButtonEvents();
     this.listenToSidePanelStatus();
     

@@ -147,6 +147,14 @@ window.addEventListener('message', (event) => {
  * 创建浮动按钮
  */
 let floatingButton = null;
+let buttonDragState = {
+  isDragging: false,
+  startX: 0,
+  startY: 0,
+  startLeft: 0,
+  startTop: 0,
+  hasMoved: false
+};
 
 function createFloatingButton() {
   // 如果按钮已存在，不重复创建
@@ -179,12 +187,12 @@ function createFloatingButton() {
       background: #0a66c2;
       border-radius: 20px;
       box-shadow: 0 3px 12px rgba(10, 102, 194, 0.4);
-      cursor: pointer;
+      cursor: move;
       z-index: 999999;
       display: flex;
       align-items: center;
       justify-content: center;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
       user-select: none;
       animation: colink-slide-in 0.5s ease-out;
     }
@@ -195,7 +203,12 @@ function createFloatingButton() {
     }
 
     #colink-floating-button:active {
-      transform: translateY(-1px) scale(1.01);
+      cursor: grabbing;
+    }
+
+    #colink-floating-button.dragging {
+      transition: none;
+      cursor: grabbing;
     }
 
     .colink-button-content {
@@ -207,6 +220,7 @@ function createFloatingButton() {
       font-weight: 600;
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
       white-space: nowrap;
+      pointer-events: none;
     }
 
     .colink-button-content svg {
@@ -243,8 +257,65 @@ function createFloatingButton() {
     }
   `;
 
-  // 添加点击事件
-  floatingButton.addEventListener('click', () => {
+  // 拖动开始
+  const onMouseDown = (e) => {
+    buttonDragState.isDragging = true;
+    buttonDragState.hasMoved = false;
+    buttonDragState.startX = e.clientX;
+    buttonDragState.startY = e.clientY;
+    
+    const rect = floatingButton.getBoundingClientRect();
+    buttonDragState.startLeft = rect.left;
+    buttonDragState.startTop = rect.top;
+    
+    floatingButton.classList.add('dragging');
+    e.preventDefault();
+  };
+
+  // 拖动中
+  const onMouseMove = (e) => {
+    if (!buttonDragState.isDragging) return;
+    
+    const deltaX = e.clientX - buttonDragState.startX;
+    const deltaY = e.clientY - buttonDragState.startY;
+    
+    // 如果移动超过5像素，认为是拖动而不是点击
+    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
+      buttonDragState.hasMoved = true;
+    }
+    
+    let newLeft = buttonDragState.startLeft + deltaX;
+    let newTop = buttonDragState.startTop + deltaY;
+    
+    // 限制在窗口内
+    const maxLeft = window.innerWidth - floatingButton.offsetWidth;
+    const maxTop = window.innerHeight - floatingButton.offsetHeight;
+    
+    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+    newTop = Math.max(0, Math.min(newTop, maxTop));
+    
+    floatingButton.style.left = newLeft + 'px';
+    floatingButton.style.top = newTop + 'px';
+    floatingButton.style.right = 'auto';
+    floatingButton.style.bottom = 'auto';
+  };
+
+  // 拖动结束
+  const onMouseUp = () => {
+    if (!buttonDragState.isDragging) return;
+    
+    buttonDragState.isDragging = false;
+    floatingButton.classList.remove('dragging');
+  };
+
+  // 点击事件
+  const onClick = (e) => {
+    // 如果刚刚拖动过，不触发点击
+    if (buttonDragState.hasMoved) {
+      buttonDragState.hasMoved = false;
+      return;
+    }
+    
     console.log('CoLink: 点击浮动按钮');
     
     // 发送消息给 background script 打开侧边栏
@@ -263,7 +334,13 @@ function createFloatingButton() {
     } else {
       console.error('CoLink: 扩展上下文失效，请刷新页面');
     }
-  });
+  };
+
+  // 绑定事件
+  floatingButton.addEventListener('mousedown', onMouseDown);
+  document.addEventListener('mousemove', onMouseMove);
+  document.addEventListener('mouseup', onMouseUp);
+  floatingButton.addEventListener('click', onClick);
 
   // 将样式和按钮添加到页面
   document.head.appendChild(style);
@@ -281,6 +358,15 @@ function removeFloatingButton() {
         floatingButton.parentNode.removeChild(floatingButton);
       }
       floatingButton = null;
+      // 重置拖动状态
+      buttonDragState = {
+        isDragging: false,
+        startX: 0,
+        startY: 0,
+        startLeft: 0,
+        startTop: 0,
+        hasMoved: false
+      };
     }, 300); // 等待动画完成
   }
 }
