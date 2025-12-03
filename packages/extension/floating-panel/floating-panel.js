@@ -113,6 +113,12 @@ class FloatingPanel {
         const isOpen = event.data.isOpen;
         this.handleSidePanelChange(isOpen);
       }
+      
+      // 监听URL变化消息
+      if (event.data.type === 'COLINK_URL_CHANGED') {
+        console.log('CoLink: 检测到URL变化，重新加载用户数据');
+        this.handleUrlChange(event.data.url, event.data.username);
+      }
     });
   }
   
@@ -141,6 +147,29 @@ class FloatingPanel {
     setTimeout(() => {
       this.panel.style.transition = '';
     }, 300);
+  }
+  
+  /**
+   * 处理URL变化（用户切换到不同的个人资料页面）
+   */
+  handleUrlChange(url, username) {
+    console.log('CoLink: 处理URL变化', url, username);
+    
+    // 清空当前数据
+    this.userData = null;
+    
+    // 重置模板选择
+    const templateSelect = document.getElementById('template-select');
+    if (templateSelect) {
+      templateSelect.value = '';
+    }
+    const templatePreview = document.getElementById('template-preview');
+    if (templatePreview) {
+      templatePreview.style.display = 'none';
+    }
+    
+    // 重新加载数据
+    this.loadUserData();
   }
   
   setInitialPosition() {
@@ -284,13 +313,32 @@ class FloatingPanel {
   
   waitForPageLoad() {
     return new Promise((resolve) => {
-      if (document.readyState === 'complete') {
-        setTimeout(resolve, 1000); // 等待1秒确保内容渲染
-      } else {
-        window.addEventListener('load', () => {
-          setTimeout(resolve, 1000);
-        });
-      }
+      let timeoutId = null;
+      let checkIntervalId = null;
+      
+      // LinkedIn 是 SPA，需要等待内容真正加载
+      const checkContent = () => {
+        // 检查关键元素是否已加载
+        const nameElement = document.querySelector('h1.text-heading-xlarge');
+        if (nameElement && nameElement.textContent.trim()) {
+          // 找到内容了，清除超时定时器
+          if (timeoutId) clearTimeout(timeoutId);
+          // 再等待一小段时间确保完全渲染
+          setTimeout(resolve, 800);
+        } else {
+          // 没找到，继续等待
+          checkIntervalId = setTimeout(checkContent, 200);
+        }
+      };
+      
+      // 开始检查（最多等待10秒）
+      timeoutId = setTimeout(() => {
+        console.warn('CoLink: 等待页面加载超时');
+        if (checkIntervalId) clearTimeout(checkIntervalId);
+        resolve();
+      }, 10000);
+      
+      checkContent();
     });
   }
   

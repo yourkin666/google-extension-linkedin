@@ -349,6 +349,17 @@ new MutationObserver(() => {
     lastUrl = currentUrl;
     notifySidePanel();
     updateFloatingButtonVisibility();
+    
+    // 通知浮动面板URL已变化，需要重新加载数据
+    const username = extractLinkedInUsername();
+    if (username && floatingPanelVisible) {
+      console.log('CoLink: URL变化，通知浮动面板重新加载数据');
+      window.postMessage({ 
+        type: 'COLINK_URL_CHANGED',
+        url: currentUrl,
+        username: username
+      }, '*');
+    }
   }
 }).observe(document, { subtree: true, childList: true });
 
