@@ -123,11 +123,23 @@ function removeFloatingPanel() {
 }
 
 /**
- * 监听来自浮动面板的关闭消息
+ * 监听来自浮动面板的消息
  */
 window.addEventListener('message', (event) => {
+  // 面板关闭消息
   if (event.data.type === 'COLINK_PANEL_CLOSED') {
     removeFloatingPanel();
+  }
+  
+  // 打开侧边栏消息（来自浮动面板）
+  if (event.data.type === 'COLINK_OPEN_SIDEPANEL') {
+    console.log('CoLink: 收到打开侧边栏请求', event.data);
+    if (chrome.runtime?.id) {
+      chrome.runtime.sendMessage({ 
+        type: 'OPEN_SIDEPANEL',
+        tab: event.data.tab 
+      });
+    }
   }
 });
 

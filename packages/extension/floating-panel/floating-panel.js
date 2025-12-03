@@ -222,17 +222,31 @@ class FloatingPanel {
     }
     
     // 点击邮箱复制
-    const emailDisplay = document.getElementById('user-email');
-    if (emailDisplay) {
-      emailDisplay.addEventListener('click', () => this.copyEmail());
-      emailDisplay.style.cursor = 'pointer';
-      emailDisplay.title = '点击复制邮箱';
+    const emailInput = document.getElementById('user-email');
+    if (emailInput) {
+      emailInput.addEventListener('click', () => this.copyEmail());
+      emailInput.style.cursor = 'pointer';
+      emailInput.title = '点击复制邮箱';
     }
     
     // 模板选择
     const templateSelect = document.getElementById('template-select');
     if (templateSelect) {
-      templateSelect.addEventListener('change', (e) => this.onTemplateChange(e));
+      // 移除之前的 change 事件自动发送
+      // templateSelect.addEventListener('change', (e) => this.onTemplateChange(e));
+    }
+    
+    // 发送按钮点击
+    const btnSendEmail = document.getElementById('btn-send-email');
+    if (btnSendEmail) {
+      btnSendEmail.addEventListener('click', () => {
+        const templateId = templateSelect ? templateSelect.value : '';
+        if (!templateId) {
+          this.showToast('请先选择邮件模板', 'warning');
+          return;
+        }
+        this.sendEmail(templateId);
+      });
     }
     
     // 管理模板
@@ -372,6 +386,7 @@ class FloatingPanel {
     const emailInput = document.getElementById('user-email');
     if (emailInput) {
       emailInput.value = '';
+      emailInput.placeholder = '加载中...';
       emailInput.classList.add('skeleton');
     }
     
@@ -397,6 +412,7 @@ class FloatingPanel {
     const emailInput = document.getElementById('user-email');
     if (emailInput) {
       emailInput.classList.remove('skeleton');
+      emailInput.placeholder = '该功能开发中';
     }
     
     const experienceList = document.getElementById('experience-list');
@@ -441,9 +457,15 @@ class FloatingPanel {
     if (!this.userData) return;
     
     // 邮箱
-    const email = document.getElementById('user-email');
-    if (email) {
-      email.value = this.userData.email || '暂无邮箱';
+    const emailInput = document.getElementById('user-email');
+    if (emailInput) {
+      const emailValue = this.userData.email || '暂无邮箱';
+      emailInput.value = emailValue;
+      // 如果没有邮箱，显示placeholder
+      if (emailValue === '暂无邮箱') {
+        emailInput.value = '';
+        emailInput.placeholder = '暂无邮箱';
+      }
     }
     
     // 工作经历
@@ -562,7 +584,7 @@ Thanks!`
     const select = document.getElementById('template-select');
     if (!select) return;
     
-    select.innerHTML = '<option value="">选择邮件模板...</option>';
+    select.innerHTML = '<option value="">-- 选择邮件模板 --</option>';
     
     this.templates.forEach(template => {
       const option = document.createElement('option');
@@ -572,41 +594,16 @@ Thanks!`
     });
   }
   
-  onTemplateChange(e) {
-    const templateId = e.target.value;
-    const preview = document.getElementById('template-preview');
-    const content = document.getElementById('template-content');
-    
-    if (!templateId) {
-      if (preview) preview.style.display = 'none';
-      return;
-    }
-    
-    const template = this.templates.find(t => t.id === templateId);
-    if (!template) return;
-    
-    // 替换变量，包含主题
-    const renderedSubject = this.renderTemplate(template.subject);
-    const renderedContent = this.renderTemplate(template.content);
-    
-    const fullContent = `主题: ${renderedSubject}\n\n${renderedContent}`;
-    
-    if (content) {
-      content.textContent = fullContent;
-    }
-    if (preview) {
-      preview.style.display = 'block';
-    }
-  }
+  // onTemplateChange 不再需要
   
   renderTemplate(template) {
     if (!this.userData) return template;
     
     return template
-      .replace(/\{name\}/g, this.userData.name || 'there')
-      .replace(/\{title\}/g, this.userData.title || 'your role')
-      .replace(/\{company\}/g, this.extractCompany() || 'your company')
-      .replace(/\{location\}/g, this.userData.location || 'your location');
+      .replace(/\{name\}/g, this.userData.name || '')
+      .replace(/\{title\}/g, this.userData.title || '')
+      .replace(/\{company\}/g, this.extractCompany() || '')
+      .replace(/\{location\}/g, this.userData.location || '');
   }
   
   extractCompany() {
@@ -638,16 +635,51 @@ Thanks!`
   }
   
   /**
+   * 发送邮件
+   */
+  sendEmail(templateId) {
+    // 暂时不实现发送功能
+    this.showToast('发送邮件功能开发中...', 'info');
+    console.log('选中的模板ID:', templateId);
+    
+    /* 
+    const emailInput = document.getElementById('user-email');
+    const email = emailInput ? emailInput.value : '';
+    
+    if (!email || email === '暂无邮箱' || email === '加载中...') {
+      this.showToast('未找到有效邮箱地址', 'error');
+      return;
+    }
+    
+    const template = this.templates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    // 替换变量
+    const renderedSubject = this.renderTemplate(template.subject);
+    const renderedContent = this.renderTemplate(template.content);
+    
+    // 构建 mailto 链接
+    const mailtoLink = `mailto:${email}?subject=${encodeURIComponent(renderedSubject)}&body=${encodeURIComponent(renderedContent)}`;
+    
+    // 打开默认邮件客户端
+    window.location.href = mailtoLink;
+    
+    this.showToast('已打开邮件客户端', 'success');
+    */
+  }
+  
+  /**
    * 打开模板管理器
    */
   openTemplateManager() {
-    // 向 background 发送消息打开侧边栏并切换到模板管理标签
-    if (window.chrome && chrome.runtime) {
-      chrome.runtime.sendMessage({ 
-        type: 'OPEN_SIDEPANEL',
-        tab: 'templates'
-      });
-    }
+    console.log('CoLink: 正在打开模板管理器...');
+    
+    // 浮动面板运行在页面上下文中，不能直接使用 chrome.runtime.sendMessage
+    // 需要通过 postMessage 发送给 content script
+    window.postMessage({ 
+      type: 'COLINK_OPEN_SIDEPANEL',
+      tab: 'templates'
+    }, '*');
   }
   
   /**
@@ -660,7 +692,17 @@ Thanks!`
     return div.innerHTML;
   }
   
-  showToast(message) {
+  showToast(message, type = 'success') {
+    // 根据类型选择颜色
+    let bgColor = '#10b981'; // success - green
+    if (type === 'warning') {
+      bgColor = '#f59e0b'; // warning - orange
+    } else if (type === 'error') {
+      bgColor = '#ef4444'; // error - red
+    } else if (type === 'info') {
+      bgColor = '#3b82f6'; // info - blue
+    }
+    
     // 创建 toast
     const toast = document.createElement('div');
     toast.textContent = message;
@@ -668,7 +710,7 @@ Thanks!`
       position: fixed;
       top: 20px;
       right: 20px;
-      background: #10b981;
+      background: ${bgColor};
       color: white;
       padding: 12px 20px;
       border-radius: 8px;

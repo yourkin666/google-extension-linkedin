@@ -38,49 +38,30 @@
       <!-- 内容区域 -->
       <div class="panel-content" id="panel-content" style="display: none;">
         <!-- 邮箱信息 -->
-        <div class="section">
-          <div class="email-header">
-            <h3 class="section-title">邮箱</h3>
-            <div class="auto-toggle">
-              <span class="auto-label">自动</span>
-              <label class="switch">
-                <input type="checkbox" id="auto-email-toggle" checked>
-                <span class="slider"></span>
-              </label>
-            </div>
-          </div>
-          <div class="email-box">
-            <div class="email-icon">
-              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect>
-                <polyline points="3 7 12 13 21 7"></polyline>
-              </svg>
-            </div>
-            <input type="text" id="user-email" class="email-display" readonly value="加载中...">
-          </div>
-          <div class="email-meta">
-            <span class="email-source">来源简介，可信度</span>
-            <span class="email-trust high">高</span>
-          </div>
+        <div class="section email-section">
+          <h3 class="section-title">邮箱</h3>
+          <input type="text" id="user-email" class="email-input" placeholder="该功能开发中" readonly value="加载中...">
         </div>
 
         <!-- 发邮件 -->
-        <div class="section">
-          <h3 class="section-title">发邮件</h3>
-          <div class="template-selector-wrapper">
-            <select id="template-select" class="template-select-new">
+        <div class="section email-compose-section">
+          <div class="section-header">
+            <h3 class="section-title">发邮件</h3>
+            <a href="#" id="manage-templates" class="link-manage-template">管理模板</a>
+          </div>
+          
+          <!-- 模板选择 (左灰右白样式) -->
+          <div class="template-selector-row">
+            <select id="template-select" class="template-select">
               <option value="">选择邮件模板</option>
             </select>
-            <div class="select-arrow">
-              <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
-                <path d="M2 4 L6 8 L10 4" stroke="white" stroke-width="1.5" fill="none"/>
+            <button class="action-btn" id="btn-send-email" title="发送邮件">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="22" y1="2" x2="11" y2="13"></line>
+                <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
               </svg>
-            </div>
+            </button>
           </div>
-          <div id="template-preview" class="template-preview-new" style="display: none;">
-            <div id="template-content" class="template-content-new"></div>
-          </div>
-          <a href="#" id="manage-templates" class="link-new-template">新建模板</a>
         </div>
 
         <!-- 工作经历 -->

@@ -30,6 +30,17 @@
   }
 }
 
+@keyframes slideOutRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
 /* 头部 */
 .panel-header {
   background: linear-gradient(135deg, #0a66c2 0%, #004182 100%);
@@ -161,240 +172,195 @@
   gap: 6px;
 }
 
-/* 邮箱信息 - 新设计 */
-.email-header {
+/* 邮箱部分 - 简约设计 */
+.email-section {
+  padding: 16px 14px;
+}
+
+/* 邮箱输入框 */
+.email-input {
+  width: 100%;
+  padding: 12px;
+  background: #f3f4f6;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #374151;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  cursor: pointer;
+}
+
+.email-input::placeholder {
+  color: #9ca3af;
+}
+
+.email-input:hover {
+  background: #e5e7eb;
+  border-color: #d1d5db;
+}
+
+.email-input:focus {
+  outline: none;
+  background: white;
+  border-color: #0a66c2;
+  box-shadow: 0 0 0 3px rgba(10, 102, 194, 0.1);
+}
+
+/* 发邮件部分 - 简约设计 */
+.email-compose-section {
+  padding: 16px 14px;
+}
+
+.section-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
+  align-items: baseline;
+  margin-bottom: 10px;
 }
 
-.auto-toggle {
-  display: flex;
-  align-items: center;
-  gap: 8px;
+.section-title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #000000;
+  margin: 0;
+  letter-spacing: -0.3px;
 }
 
-.auto-label {
+/* 管理模板链接 */
+.link-manage-template {
   font-size: 12px;
-  color: #374151;
-  font-weight: 500;
-}
-
-/* Toggle Switch */
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 38px;
-  height: 20px;
-}
-
-.switch input {
-  opacity: 0;
-  width: 0;
-  height: 0;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: #d1d5db;
-  transition: 0.3s;
-  border-radius: 24px;
-}
-
-.slider:before {
-  position: absolute;
-  content: "";
-  height: 18px;
-  width: 18px;
-  left: 3px;
-  bottom: 3px;
-  background-color: white;
-  transition: 0.3s;
-  border-radius: 50%;
-}
-
-.switch input:checked + .slider {
-  background-color: #111827;
-}
-
-.switch input:checked + .slider:before {
-  transform: translateX(20px);
-}
-
-/* 邮箱显示框 */
-.email-box {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 12px;
-  background: white;
-  border: 2px solid #10b981;
-  border-radius: 10px;
-  margin-bottom: 6px;
-}
-
-.email-icon {
-  flex-shrink: 0;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f9fafb;
-  border-radius: 6px;
-}
-
-.email-icon svg {
-  width: 18px;
-  height: 18px;
-}
-
-.email-icon svg {
-  stroke: #374151;
-}
-
-.email-display {
-  flex: 1;
-  border: none;
-  background: transparent;
-  font-size: 13px;
-  color: #111827;
-  font-weight: 500;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-  cursor: pointer;
-}
-
-.email-display:focus {
-  outline: none;
-}
-
-.email-display:hover {
-  color: #0a66c2;
-}
-
-/* 邮箱元信息 */
-.email-meta {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  padding-left: 4px;
-}
-
-.email-source {
   color: #6b7280;
-}
-
-.email-trust {
-  font-weight: 600;
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.email-trust.high {
-  color: #10b981;
-  background: #d1fae5;
-}
-
-/* 邮件模板选择器 - 新设计 */
-.template-selector-wrapper {
+  text-decoration: none;
+  cursor: pointer;
   position: relative;
-  margin-bottom: 12px;
+  z-index: 10;
 }
 
-.template-select-new {
-  width: 100%;
-  padding: 10px 36px 10px 12px;
-  background: #1f2937;
-  border: none;
+.link-manage-template:hover {
+  color: #0a66c2;
+  text-decoration: underline;
+}
+
+/* 邮件模板选择器行 */
+.template-selector-row {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid #4b5563;
   border-radius: 6px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  height: 38px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.template-select {
+  flex: 1;
+  padding: 0 12px;
+  background: #d1d5db url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 8px center;
+  border: none;
+  border-radius: 0;
   font-size: 13px;
-  color: #9ca3af;
+  color: #374151;
   cursor: pointer;
   appearance: none;
-  transition: all 0.2s ease;
+  -webkit-appearance: none;
+  text-align: left;
+  font-weight: 500;
+  transition: background 0.2s;
 }
 
-.template-select-new:hover {
-  background: #374151;
-}
-
-.template-select-new:focus {
-  outline: none;
-  background: #374151;
-}
-
-.template-select-new option {
-  background: #1f2937;
+.template-select:hover {
+  background-color: #9ca3af;
   color: white;
+}
+
+/* 这里的箭头颜色在hover时可能看不清，简单起见，hover时不改变箭头颜色或背景色变浅点 */
+.template-select:hover {
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+.template-select:focus {
+  outline: none;
+  background-color: #e5e7eb;
+  color: #111827;
+}
+
+.template-select option {
+  background: white;
+  color: #374151;
+  text-align: left;
   padding: 10px;
 }
 
-.select-arrow {
-  position: absolute;
-  right: 12px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
+/* 操作按钮（发送） */
+.action-btn {
+  flex-shrink: 0;
+  width: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: white;
+  border: none;
+  border-left: 1px solid #4b5563;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: #111827;
+  padding: 0;
 }
 
-.select-arrow svg {
-  width: 10px;
-  height: 10px;
+.action-btn:hover {
+  background: #0a66c2;
+  color: white;
 }
 
-/* 模板预览 - 新设计 */
-.template-preview-new {
-  margin-top: 10px;
-  padding: 12px;
-  background: #1f2937;
-  border-radius: 6px;
-  max-height: 150px;
+.action-btn:active {
+  background: #004182;
+}
+
+.action-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+/* 模板预览 */
+.template-preview {
+  margin-bottom: 12px;
+  padding: 14px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  max-height: 200px;
   overflow-y: auto;
 }
 
-.template-preview-new::-webkit-scrollbar {
+.template-preview::-webkit-scrollbar {
   width: 6px;
 }
 
-.template-preview-new::-webkit-scrollbar-track {
+.template-preview::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.template-preview-new::-webkit-scrollbar-thumb {
-  background: #4b5563;
+.template-preview::-webkit-scrollbar-thumb {
+  background: #d1d5db;
   border-radius: 3px;
 }
 
-.template-content-new {
+.template-preview::-webkit-scrollbar-thumb:hover {
+  background: #9ca3af;
+}
+
+.template-content {
   font-size: 12px;
-  color: #d1d5db;
-  line-height: 1.5;
+  color: #6b7280;
+  line-height: 1.6;
   white-space: pre-wrap;
   word-break: break-word;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
-}
-
-/* 新建模板链接 */
-.link-new-template {
-  display: inline-block;
-  margin-top: 10px;
-  font-size: 12px;
-  color: #374151;
-  text-decoration: none;
-  transition: color 0.2s ease;
-  font-weight: 500;
-}
-
-.link-new-template:hover {
-  color: #111827;
-  text-decoration: underline;
 }
 
 /* 时间线列表 */
@@ -614,5 +580,11 @@
 /* 骨架屏加载状态的列表 */
 .skeleton-loading {
   pointer-events: none;
+}
+
+/* 邮箱输入框骨架 */
+.email-input.skeleton {
+  color: transparent !important;
+  cursor: default !important;
 }
 

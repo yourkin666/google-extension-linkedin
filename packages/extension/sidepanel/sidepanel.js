@@ -63,6 +63,14 @@ async function init() {
 
 // 设置事件监听
 function setupEventListeners() {
+  // 监听来自 background 的消息（例如切换 Tab）
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'SWITCH_SIDEPANEL_TAB' && message.tab) {
+      console.log('收到切换标签请求:', message.tab);
+      switchTab(message.tab);
+    }
+  });
+
   // Tab 切换
   elements.tabButtons.forEach(btn => {
     btn.addEventListener('click', () => switchTab(btn.dataset.tab));

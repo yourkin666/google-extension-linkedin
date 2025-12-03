@@ -27,10 +27,26 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.sidePanel.open({ windowId: sender.tab.windowId })
         .then(() => {
           console.log('侧边栏已打开（通过浮动按钮）');
+          
           // 通知 content script 侧边栏已打开
           chrome.tabs.sendMessage(sender.tab.id, { 
             type: 'SIDEPANEL_OPENED' 
           }).catch(() => {});
+          
+          // 如果指定了要打开的标签页，稍后发送消息给侧边栏
+          if (message.tab) {
+            // 延迟一点发送，确保侧边栏已加载
+            setTimeout(() => {
+              chrome.runtime.sendMessage({
+                type: 'SWITCH_SIDEPANEL_TAB',
+                tab: message.tab
+              }).catch(err => {
+                // 如果侧边栏尚未打开或无法接收消息，可能会报错，这里忽略或记录
+                console.log('发送切换标签消息失败（可能是侧边栏刚启动）:', err);
+              });
+            }, 300);
+          }
+          
           sendResponse({ success: true });
         })
         .catch((error) => {
