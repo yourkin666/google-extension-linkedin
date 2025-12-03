@@ -73,9 +73,9 @@ function createFloatingButton() {
       bottom: 80px;
       right: 16px;
       padding: 8px 14px;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      background: #0a66c2;
       border-radius: 20px;
-      box-shadow: 0 3px 12px rgba(102, 126, 234, 0.4);
+      box-shadow: 0 3px 12px rgba(10, 102, 194, 0.4);
       cursor: pointer;
       z-index: 999999;
       display: flex;
@@ -88,7 +88,7 @@ function createFloatingButton() {
 
     #colink-floating-button:hover {
       transform: translateY(-2px) scale(1.03);
-      box-shadow: 0 5px 16px rgba(102, 126, 234, 0.5);
+      box-shadow: 0 5px 16px rgba(10, 102, 194, 0.5);
     }
 
     #colink-floating-button:active {
