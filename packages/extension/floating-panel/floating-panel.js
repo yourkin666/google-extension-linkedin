@@ -389,14 +389,16 @@ class FloatingPanel {
     // 工作经历骨架
     const experienceList = document.getElementById('experience-list');
     if (experienceList) {
-      experienceList.innerHTML = this.getSkeletonItems(2);
+      experienceList.textContent = '';
+      experienceList.appendChild(this.getSkeletonItems(2));
       experienceList.classList.add('skeleton-loading');
     }
     
     // 教育经历骨架
     const educationList = document.getElementById('education-list');
     if (educationList) {
-      educationList.innerHTML = this.getSkeletonItems(1);
+      educationList.textContent = '';
+      educationList.appendChild(this.getSkeletonItems(1));
       educationList.classList.add('skeleton-loading');
     }
   }
@@ -425,16 +427,39 @@ class FloatingPanel {
    * 生成骨架屏项目
    */
   getSkeletonItems(count) {
-    return Array(count).fill(0).map(() => `
-      <div class="timeline-item skeleton-item">
-        <div class="timeline-logo skeleton skeleton-circle"></div>
-        <div class="timeline-content">
-          <div class="timeline-title skeleton skeleton-text" style="width: 70%;"></div>
-          <div class="timeline-subtitle skeleton skeleton-text" style="width: 85%;"></div>
-          <div class="timeline-date skeleton skeleton-text" style="width: 50%;"></div>
-        </div>
-      </div>
-    `).join('');
+    const fragment = document.createDocumentFragment();
+    
+    for (let i = 0; i < count; i++) {
+      const item = document.createElement('div');
+      item.className = 'timeline-item skeleton-item';
+      
+      const logo = document.createElement('div');
+      logo.className = 'timeline-logo skeleton skeleton-circle';
+      item.appendChild(logo);
+      
+      const content = document.createElement('div');
+      content.className = 'timeline-content';
+      
+      const title = document.createElement('div');
+      title.className = 'timeline-title skeleton skeleton-text';
+      title.style.width = '70%';
+      content.appendChild(title);
+      
+      const subtitle = document.createElement('div');
+      subtitle.className = 'timeline-subtitle skeleton skeleton-text';
+      subtitle.style.width = '85%';
+      content.appendChild(subtitle);
+      
+      const date = document.createElement('div');
+      date.className = 'timeline-date skeleton skeleton-text';
+      date.style.width = '50%';
+      content.appendChild(date);
+      
+      item.appendChild(content);
+      fragment.appendChild(item);
+    }
+    
+    return fragment;
   }
   
   async fetchEmail() {
@@ -465,7 +490,7 @@ class FloatingPanel {
     const empty = document.getElementById('experience-empty');
     
     if (!this.userData.experience || this.userData.experience.length === 0) {
-      if (list) list.innerHTML = '';
+      if (list) list.textContent = '';
       if (empty) empty.style.display = 'block';
       return;
     }
@@ -473,30 +498,66 @@ class FloatingPanel {
     if (empty) empty.style.display = 'none';
     
     if (list) {
-      list.innerHTML = this.userData.experience.map((exp, index) => `
-        <div class="timeline-item clickable-timeline-item" data-company="${this.escapeHtml(exp.company)}" data-index="${index}">
-          ${exp.logo 
-            ? `<img src="${exp.logo}" alt="${exp.company}" class="timeline-logo">` 
-            : `<div class="timeline-logo placeholder">W</div>`
-          }
-          <div class="timeline-content">
-            <div class="timeline-title">${this.escapeHtml(exp.title)}</div>
-            <div class="timeline-subtitle">${this.escapeHtml(exp.company)}</div>
-            <div class="timeline-date">${this.escapeHtml(exp.dates)}</div>
-          </div>
-          <span class="timeline-arrow">→</span>
-        </div>
-      `).join('');
+      // 清空现有内容
+      list.textContent = '';
       
-      // 为每个工作经历项添加点击事件
-      const items = list.querySelectorAll('.clickable-timeline-item');
-      items.forEach(item => {
-        item.addEventListener('click', (e) => {
+      // 使用 DOM API 创建元素，避免 innerHTML sanitization 问题
+      this.userData.experience.forEach((exp, index) => {
+        const item = document.createElement('div');
+        item.className = 'timeline-item clickable-timeline-item';
+        item.setAttribute('data-company', exp.company);
+        item.setAttribute('data-index', index.toString());
+        
+        // 创建 logo
+        if (exp.logo) {
+          const img = document.createElement('img');
+          img.src = exp.logo;
+          img.alt = exp.company;
+          img.className = 'timeline-logo';
+          item.appendChild(img);
+        } else {
+          const logoPlaceholder = document.createElement('div');
+          logoPlaceholder.className = 'timeline-logo placeholder';
+          logoPlaceholder.textContent = 'W';
+          item.appendChild(logoPlaceholder);
+        }
+        
+        // 创建内容区域
+        const content = document.createElement('div');
+        content.className = 'timeline-content';
+        
+        const title = document.createElement('div');
+        title.className = 'timeline-title';
+        title.textContent = exp.title;
+        content.appendChild(title);
+        
+        const subtitle = document.createElement('div');
+        subtitle.className = 'timeline-subtitle';
+        subtitle.textContent = exp.company;
+        content.appendChild(subtitle);
+        
+        const date = document.createElement('div');
+        date.className = 'timeline-date';
+        date.textContent = exp.dates;
+        content.appendChild(date);
+        
+        item.appendChild(content);
+        
+        // 创建箭头
+        const arrow = document.createElement('span');
+        arrow.className = 'timeline-arrow';
+        arrow.textContent = '→';
+        item.appendChild(arrow);
+        
+        // 添加点击事件
+        item.addEventListener('click', () => {
           const company = item.getAttribute('data-company');
           if (company) {
             this.openCompanyGoogle(company);
           }
         });
+        
+        list.appendChild(item);
       });
     }
   }
@@ -516,7 +577,7 @@ class FloatingPanel {
     const empty = document.getElementById('education-empty');
     
     if (!this.userData.education || this.userData.education.length === 0) {
-      if (list) list.innerHTML = '';
+      if (list) list.textContent = '';
       if (empty) empty.style.display = 'block';
       return;
     }
@@ -524,30 +585,66 @@ class FloatingPanel {
     if (empty) empty.style.display = 'none';
     
     if (list) {
-      list.innerHTML = this.userData.education.map((edu, index) => `
-        <div class="timeline-item clickable-timeline-item" data-school="${this.escapeHtml(edu.school)}" data-index="${index}">
-          ${edu.logo 
-            ? `<img src="${edu.logo}" alt="${edu.school}" class="timeline-logo">` 
-            : `<div class="timeline-logo placeholder">E</div>`
-          }
-          <div class="timeline-content">
-            <div class="timeline-title">${this.escapeHtml(edu.school)}</div>
-            <div class="timeline-subtitle">${this.escapeHtml(edu.degree)}</div>
-            <div class="timeline-date">${this.escapeHtml(edu.dates)}</div>
-          </div>
-          <span class="timeline-arrow">→</span>
-        </div>
-      `).join('');
+      // 清空现有内容
+      list.textContent = '';
       
-      // 为每个教育经历项添加点击事件
-      const items = list.querySelectorAll('.clickable-timeline-item');
-      items.forEach(item => {
-        item.addEventListener('click', (e) => {
+      // 使用 DOM API 创建元素，避免 innerHTML sanitization 问题
+      this.userData.education.forEach((edu, index) => {
+        const item = document.createElement('div');
+        item.className = 'timeline-item clickable-timeline-item';
+        item.setAttribute('data-school', edu.school);
+        item.setAttribute('data-index', index.toString());
+        
+        // 创建 logo
+        if (edu.logo) {
+          const img = document.createElement('img');
+          img.src = edu.logo;
+          img.alt = edu.school;
+          img.className = 'timeline-logo';
+          item.appendChild(img);
+        } else {
+          const logoPlaceholder = document.createElement('div');
+          logoPlaceholder.className = 'timeline-logo placeholder';
+          logoPlaceholder.textContent = 'E';
+          item.appendChild(logoPlaceholder);
+        }
+        
+        // 创建内容区域
+        const content = document.createElement('div');
+        content.className = 'timeline-content';
+        
+        const title = document.createElement('div');
+        title.className = 'timeline-title';
+        title.textContent = edu.school;
+        content.appendChild(title);
+        
+        const subtitle = document.createElement('div');
+        subtitle.className = 'timeline-subtitle';
+        subtitle.textContent = edu.degree;
+        content.appendChild(subtitle);
+        
+        const date = document.createElement('div');
+        date.className = 'timeline-date';
+        date.textContent = edu.dates;
+        content.appendChild(date);
+        
+        item.appendChild(content);
+        
+        // 创建箭头
+        const arrow = document.createElement('span');
+        arrow.className = 'timeline-arrow';
+        arrow.textContent = '→';
+        item.appendChild(arrow);
+        
+        // 添加点击事件
+        item.addEventListener('click', () => {
           const school = item.getAttribute('data-school');
           if (school) {
             this.openSchoolGoogle(school);
           }
         });
+        
+        list.appendChild(item);
       });
     }
   }
