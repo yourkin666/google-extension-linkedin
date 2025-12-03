@@ -277,35 +277,57 @@ class FloatingPanel {
   }
   
   /**
-   * 加载用户数据
+   * 加载用户数据（优化版：更快速 + 骨架屏）
    */
   async loadUserData() {
     try {
-      // 显示加载状态
-      document.getElementById('loading-state').style.display = 'flex';
-      document.getElementById('panel-content').style.display = 'none';
+      const panelContent = document.getElementById('panel-content');
+      const loadingState = document.getElementById('loading-state');
       
-      // 等待页面加载完成
-      await this.waitForPageLoad();
+      // 显示骨架屏
+      this.showSkeletonScreen();
+      loadingState.style.display = 'none';
+      panelContent.style.display = 'flex';
+      panelContent.style.opacity = '1';
       
-      // 从页面抓取数据
-      const userData = window.scrapeUserProfile ? window.scrapeUserProfile() : {};
+      // 更激进的等待策略：尝试立即抓取，失败则等待
+      let userData = null;
+      const startTime = Date.now();
+      
+      // 先尝试立即抓取（不等待）
+      if (window.scrapeUserProfile) {
+        userData = window.scrapeUserProfile();
+        // 检查是否获取到有效数据
+        if (!userData.name || !userData.name.trim()) {
+          userData = null;
+        }
+      }
+      
+      // 如果没有获取到数据，再等待页面加载
+      if (!userData) {
+        await this.waitForPageLoad();
+        userData = window.scrapeUserProfile ? window.scrapeUserProfile() : {};
+      }
+      
+      const loadTime = Date.now() - startTime;
+      console.log(`CoLink: 数据加载耗时 ${loadTime}ms`);
+      
       this.userData = userData;
-      
-      // 设置邮箱为暂无（不调用fetchEmail）
       this.userData.email = '暂无邮箱';
       
-      // 渲染数据
-      this.renderUserData();
-      
-      // 隐藏加载，显示内容
-      document.getElementById('loading-state').style.display = 'none';
-      document.getElementById('panel-content').style.display = 'flex';
+      // 使用 requestAnimationFrame 优化渲染
+      requestAnimationFrame(() => {
+        this.renderUserData();
+        this.hideSkeletonScreen();
+      });
       
     } catch (error) {
       console.error('加载用户数据失败:', error);
-      document.getElementById('loading-state').innerHTML = `
-        <p style="color: #ef4444;">加载失败，请刷新重试</p>
+      const panelContent = document.getElementById('panel-content');
+      panelContent.innerHTML = `
+        <div style="padding: 20px; text-align: center; color: #ef4444;">
+          加载失败，请刷新重试
+        </div>
       `;
     }
   }
@@ -327,19 +349,81 @@ class FloatingPanel {
           resolve();
         } else {
           // 没找到，继续等待
-          checkIntervalId = setTimeout(checkContent, 100);
+          checkIntervalId = setTimeout(checkContent, 50); // 从100ms减少到50ms
         }
       };
       
-      // 开始检查（最多等待5秒）
+      // 开始检查（最多等待3秒）
       timeoutId = setTimeout(() => {
         console.warn('CoLink: 等待页面加载超时');
         if (checkIntervalId) clearTimeout(checkIntervalId);
         resolve();
-      }, 5000);
+      }, 3000); // 从5秒减少到3秒
       
       checkContent();
     });
+  }
+  
+  /**
+   * 显示骨架屏
+   */
+  showSkeletonScreen() {
+    // 邮箱骨架
+    const emailInput = document.getElementById('user-email');
+    if (emailInput) {
+      emailInput.value = '';
+      emailInput.classList.add('skeleton');
+    }
+    
+    // 工作经历骨架
+    const experienceList = document.getElementById('experience-list');
+    if (experienceList) {
+      experienceList.innerHTML = this.getSkeletonItems(2);
+      experienceList.classList.add('skeleton-loading');
+    }
+    
+    // 教育经历骨架
+    const educationList = document.getElementById('education-list');
+    if (educationList) {
+      educationList.innerHTML = this.getSkeletonItems(1);
+      educationList.classList.add('skeleton-loading');
+    }
+  }
+  
+  /**
+   * 隐藏骨架屏
+   */
+  hideSkeletonScreen() {
+    const emailInput = document.getElementById('user-email');
+    if (emailInput) {
+      emailInput.classList.remove('skeleton');
+    }
+    
+    const experienceList = document.getElementById('experience-list');
+    if (experienceList) {
+      experienceList.classList.remove('skeleton-loading');
+    }
+    
+    const educationList = document.getElementById('education-list');
+    if (educationList) {
+      educationList.classList.remove('skeleton-loading');
+    }
+  }
+  
+  /**
+   * 生成骨架屏项目
+   */
+  getSkeletonItems(count) {
+    return Array(count).fill(0).map(() => `
+      <div class="timeline-item skeleton-item">
+        <div class="timeline-logo skeleton skeleton-circle"></div>
+        <div class="timeline-content">
+          <div class="timeline-title skeleton skeleton-text" style="width: 70%;"></div>
+          <div class="timeline-subtitle skeleton skeleton-text" style="width: 85%;"></div>
+          <div class="timeline-date skeleton skeleton-text" style="width: 50%;"></div>
+        </div>
+      </div>
+    `).join('');
   }
   
   async fetchEmail() {
