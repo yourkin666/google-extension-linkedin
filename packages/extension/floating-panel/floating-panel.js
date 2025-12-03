@@ -569,7 +569,6 @@ class FloatingPanel {
     const searchQuery = encodeURIComponent(companyName);
     const googleSearchUrl = `https://www.google.com/search?q=${searchQuery}`;
     window.open(googleSearchUrl, '_blank');
-    this.showToast(`正在搜索 ${companyName}`, 'info');
   }
   
   renderEducation() {
@@ -656,7 +655,6 @@ class FloatingPanel {
     const searchQuery = encodeURIComponent(schoolName);
     const googleSearchUrl = `https://www.google.com/search?q=${searchQuery}`;
     window.open(googleSearchUrl, '_blank');
-    this.showToast(`正在搜索 ${schoolName}`, 'info');
   }
   
   /**

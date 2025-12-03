@@ -1,21 +1,33 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
-import dotenv from 'dotenv';
 import linkedinRoutes from './routes/linkedin';
+import { fastifyLoggerConfig } from './config/logger';
+import { config, validateConfig, printConfig } from './config/env';
 
-dotenv.config();
+// 验证配置
+if (!validateConfig()) {
+  process.exit(1);
+}
 
 const fastify = Fastify({
-  logger: true,
+  logger: fastifyLoggerConfig,
+  requestIdLogLabel: 'reqId',
+  disableRequestLogging: false,
+  requestIdHeader: 'x-request-id',
 });
 
 // 注册 CORS
+const corsOrigin = config.cors.origin === '*' 
+  ? true 
+  : config.cors.origin.split(',').map(o => o.trim());
+
 fastify.register(cors, {
-  origin: true, // 允许所有来源（生产环境需要限制）
+  origin: corsOrigin,
+  credentials: config.cors.credentials,
 });
 
 // 注册路由
-fastify.register(linkedinRoutes, { prefix: '/api/linkedin' });
+fastify.register(linkedinRoutes, { prefix: config.api.prefix });
 
 // 健康检查
 fastify.get('/health', async () => {
@@ -25,11 +37,23 @@ fastify.get('/health', async () => {
 // 启动服务器
 const start = async () => {
   try {
-    const port = parseInt(process.env.PORT || '3000', 10);
-    await fastify.listen({ port, host: '0.0.0.0' });
-    console.log(`🚀 服务器运行在 http://localhost:${port}`);
+    // 打印配置信息
+    printConfig();
+    
+    await fastify.listen({ 
+      port: config.server.port, 
+      host: config.server.host 
+    });
+    
+    fastify.log.info(`🚀 服务器运行在 http://localhost:${config.server.port}`);
+    fastify.log.info(`🌍 环境: ${config.server.env}`);
+    fastify.log.info(`📝 日志级别: ${config.log.level}`);
+    
+    if (config.cors.origin === '*') {
+      fastify.log.warn('⚠️  CORS 配置为允许所有来源，生产环境请限制 CORS_ORIGIN');
+    }
   } catch (err) {
-    fastify.log.error(err);
+    fastify.log.error({ err }, '❌ 服务器启动失败');
     process.exit(1);
   }
 };
