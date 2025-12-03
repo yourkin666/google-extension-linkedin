@@ -144,207 +144,179 @@ window.addEventListener('message', (event) => {
 });
 
 /**
- * 创建浮动按钮
+ * 创建浮动按钮（固定在头像旁边）
  */
 let floatingButton = null;
-let buttonDragState = {
-  isDragging: false,
-  startX: 0,
-  startY: 0,
-  startLeft: 0,
-  startTop: 0,
-  hasMoved: false
-};
+let retryCount = 0;
+const MAX_RETRY = 10;
 
 function createFloatingButton() {
   // 如果按钮已存在，不重复创建
-  if (floatingButton) {
+  if (floatingButton && document.body.contains(floatingButton)) {
+    console.log('CoLink: 按钮已存在');
     return;
   }
 
-  // 创建按钮元素
-  floatingButton = document.createElement('div');
-  floatingButton.id = 'colink-floating-button';
-  floatingButton.innerHTML = `
-    <div class="colink-button-content">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <span>CoLink找相似</span>
-    </div>
-  `;
-
-  // 添加样式
-  const style = document.createElement('style');
-  style.textContent = `
-    #colink-floating-button {
-      position: fixed;
-      bottom: 80px;
-      right: 16px;
-      padding: 8px 14px;
-      background: #0a66c2;
-      border-radius: 20px;
-      box-shadow: 0 3px 12px rgba(10, 102, 194, 0.4);
-      cursor: move;
-      z-index: 999999;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.2s ease, box-shadow 0.2s ease;
-      user-select: none;
-      animation: colink-slide-in 0.5s ease-out;
-    }
-
-    #colink-floating-button:hover {
-      transform: translateY(-2px) scale(1.03);
-      box-shadow: 0 5px 16px rgba(10, 102, 194, 0.5);
-    }
-
-    #colink-floating-button:active {
-      cursor: grabbing;
-    }
-
-    #colink-floating-button.dragging {
-      transition: none;
-      cursor: grabbing;
-    }
-
-    .colink-button-content {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      color: white;
-      font-size: 13px;
-      font-weight: 600;
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
-      white-space: nowrap;
-      pointer-events: none;
-    }
-
-    .colink-button-content svg {
-      width: 16px;
-      height: 16px;
-      flex-shrink: 0;
-      filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-    }
-
-    @keyframes colink-slide-in {
-      from {
-        opacity: 0;
-        transform: translateX(100px);
-      }
-      to {
-        opacity: 1;
-        transform: translateX(0);
-      }
-    }
-
-    @keyframes colink-slide-out {
-      from {
-        opacity: 1;
-        transform: translateX(0);
-      }
-      to {
-        opacity: 0;
-        transform: translateX(100px);
-      }
-    }
-
-    #colink-floating-button.colink-hiding {
-      animation: colink-slide-out 0.3s ease-in forwards;
-    }
-  `;
-
-  // 拖动开始
-  const onMouseDown = (e) => {
-    buttonDragState.isDragging = true;
-    buttonDragState.hasMoved = false;
-    buttonDragState.startX = e.clientX;
-    buttonDragState.startY = e.clientY;
+  // 等待LinkedIn页面加载完成，找到插入位置
+  const insertButton = () => {
+    retryCount++;
     
-    const rect = floatingButton.getBoundingClientRect();
-    buttonDragState.startLeft = rect.left;
-    buttonDragState.startTop = rect.top;
-    
-    floatingButton.classList.add('dragging');
-    e.preventDefault();
-  };
-
-  // 拖动中
-  const onMouseMove = (e) => {
-    if (!buttonDragState.isDragging) return;
-    
-    const deltaX = e.clientX - buttonDragState.startX;
-    const deltaY = e.clientY - buttonDragState.startY;
-    
-    // 如果移动超过5像素，认为是拖动而不是点击
-    if (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5) {
-      buttonDragState.hasMoved = true;
-    }
-    
-    let newLeft = buttonDragState.startLeft + deltaX;
-    let newTop = buttonDragState.startTop + deltaY;
-    
-    // 限制在窗口内
-    const maxLeft = window.innerWidth - floatingButton.offsetWidth;
-    const maxTop = window.innerHeight - floatingButton.offsetHeight;
-    
-    newLeft = Math.max(0, Math.min(newLeft, maxLeft));
-    newTop = Math.max(0, Math.min(newTop, maxTop));
-    
-    floatingButton.style.left = newLeft + 'px';
-    floatingButton.style.top = newTop + 'px';
-    floatingButton.style.right = 'auto';
-    floatingButton.style.bottom = 'auto';
-  };
-
-  // 拖动结束
-  const onMouseUp = () => {
-    if (!buttonDragState.isDragging) return;
-    
-    buttonDragState.isDragging = false;
-    floatingButton.classList.remove('dragging');
-  };
-
-  // 点击事件
-  const onClick = (e) => {
-    // 如果刚刚拖动过，不触发点击
-    if (buttonDragState.hasMoved) {
-      buttonDragState.hasMoved = false;
+    if (retryCount > MAX_RETRY) {
+      console.error('CoLink: 无法找到合适的插入位置');
       return;
     }
-    
-    console.log('CoLink: 点击浮动按钮');
-    
-    // 发送消息给 background script 打开侧边栏
-    if (chrome.runtime?.id) {
-      chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' }, (response) => {
-        if (chrome.runtime.lastError) {
-          console.error('CoLink: 发送消息失败', chrome.runtime.lastError);
-        } else {
-          console.log('CoLink: 消息已发送，响应：', response);
-          // 侧边栏成功打开后，隐藏按钮
-          if (response && response.success) {
-            removeFloatingButton();
+
+    // 多种可能的选择器，按优先级尝试
+    const selectors = [
+      '.pv-top-card__profile-photo-container', // 头像容器
+      '.pv-top-card-profile-picture', // 头像
+      'img[loading="lazy"].pv-top-card-profile-picture__image', // 头像图片
+      '.ph5.pb5', // 个人资料头部
+      '.pv-text-details__left-panel', // 文字详情左侧面板
+    ];
+
+    let targetContainer = null;
+    for (const selector of selectors) {
+      targetContainer = document.querySelector(selector);
+      if (targetContainer) {
+        console.log('CoLink: 找到目标容器:', selector);
+        break;
+      }
+    }
+
+    if (!targetContainer) {
+      console.log('CoLink: 未找到目标容器，重试中...', retryCount);
+      setTimeout(insertButton, 500);
+      return;
+    }
+
+    // 添加样式（只添加一次）
+    if (!document.getElementById('colink-button-style')) {
+      const style = document.createElement('style');
+      style.id = 'colink-button-style';
+      style.textContent = `
+        #colink-similarity-button-wrapper {
+          position: absolute;
+          top: 0;
+          left: 180px;
+          z-index: 1000;
+        }
+
+        .colink-similarity-button {
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+          padding: 10px 16px;
+          background: #0a66c2;
+          color: white;
+          border: none;
+          border-radius: 24px;
+          font-size: 14px;
+          font-weight: 600;
+          font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica', 'Arial', sans-serif;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          box-shadow: 0 2px 8px rgba(10, 102, 194, 0.3);
+          white-space: nowrap;
+        }
+
+        .colink-similarity-button:hover {
+          background: #004182;
+          box-shadow: 0 4px 12px rgba(10, 102, 194, 0.4);
+          transform: translateY(-1px);
+        }
+
+        .colink-similarity-button:active {
+          transform: translateY(0);
+        }
+
+        .colink-similarity-button svg {
+          width: 16px;
+          height: 16px;
+          flex-shrink: 0;
+        }
+
+        @keyframes colink-fade-in {
+          from {
+            opacity: 0;
+            transform: scale(0.9);
+          }
+          to {
+            opacity: 1;
+            transform: scale(1);
           }
         }
-      });
+
+        .colink-similarity-button {
+          animation: colink-fade-in 0.3s ease-out;
+        }
+
+        /* 如果头像容器没有 position，给它添加 */
+        .pv-top-card__profile-photo-container,
+        .pv-top-card-profile-picture {
+          position: relative !important;
+        }
+      `;
+      document.head.appendChild(style);
+    }
+
+    // 创建按钮元素
+    floatingButton = document.createElement('button');
+    floatingButton.id = 'colink-floating-button';
+    floatingButton.className = 'colink-similarity-button';
+    floatingButton.innerHTML = `
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <span>CoLink找相似</span>
+    `;
+
+    // 点击事件
+    floatingButton.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      console.log('CoLink: 点击找相似按钮');
+      
+      // 发送消息给 background script 打开侧边栏
+      if (chrome.runtime?.id) {
+        chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' }, (response) => {
+          if (chrome.runtime.lastError) {
+            console.error('CoLink: 发送消息失败', chrome.runtime.lastError);
+          } else {
+            console.log('CoLink: 消息已发送，响应：', response);
+          }
+        });
+      } else {
+        console.error('CoLink: 扩展上下文失效，请刷新页面');
+      }
+    });
+
+    // 创建包装器
+    const buttonWrapper = document.createElement('div');
+    buttonWrapper.id = 'colink-similarity-button-wrapper';
+    buttonWrapper.appendChild(floatingButton);
+
+    // 确保目标容器有相对定位
+    if (targetContainer && window.getComputedStyle(targetContainer).position === 'static') {
+      targetContainer.style.position = 'relative';
+    }
+
+    // 插入按钮
+    if (targetContainer) {
+      targetContainer.appendChild(buttonWrapper);
+      console.log('CoLink: 找相似按钮已成功添加到页面');
     } else {
-      console.error('CoLink: 扩展上下文失效，请刷新页面');
+      console.error('CoLink: 无法插入按钮，目标容器为空');
     }
   };
 
-  // 绑定事件
-  floatingButton.addEventListener('mousedown', onMouseDown);
-  document.addEventListener('mousemove', onMouseMove);
-  document.addEventListener('mouseup', onMouseUp);
-  floatingButton.addEventListener('click', onClick);
-
-  // 将样式和按钮添加到页面
-  document.head.appendChild(style);
-  document.body.appendChild(floatingButton);
+  // 重置重试计数
+  retryCount = 0;
+  // 开始插入按钮
+  insertButton();
 }
 
 /**
@@ -352,22 +324,15 @@ function createFloatingButton() {
  */
 function removeFloatingButton() {
   if (floatingButton) {
-    floatingButton.classList.add('colink-hiding');
-    setTimeout(() => {
-      if (floatingButton && floatingButton.parentNode) {
-        floatingButton.parentNode.removeChild(floatingButton);
-      }
-      floatingButton = null;
-      // 重置拖动状态
-      buttonDragState = {
-        isDragging: false,
-        startX: 0,
-        startY: 0,
-        startLeft: 0,
-        startTop: 0,
-        hasMoved: false
-      };
-    }, 300); // 等待动画完成
+    // 找到按钮的父容器（wrapper）并移除
+    const wrapper = floatingButton.parentNode;
+    if (wrapper && wrapper.parentNode) {
+      wrapper.parentNode.removeChild(wrapper);
+    } else if (floatingButton.parentNode) {
+      floatingButton.parentNode.removeChild(floatingButton);
+    }
+    floatingButton = null;
+    console.log('CoLink: 找相似按钮已移除');
   }
 }
 
