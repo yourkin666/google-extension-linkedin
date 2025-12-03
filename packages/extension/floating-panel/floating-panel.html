@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>用户详情</title>
+  <link rel="stylesheet" href="floating-panel.css">
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      background: transparent;
+      overflow: hidden;
+    }
+  </style>
+</head>
+<body>
+  <div id="colink-floating-panel">
+    <!-- 头部 - 可拖动区域 -->
+    <div class="panel-header" id="panel-header">
+      <div class="header-content">
+        <span class="panel-title">用户详情</span>
+        <div class="header-actions">
+          <button class="btn-minimize" id="btn-minimize" title="最小化">－</button>
+          <button class="btn-close" id="btn-close" title="关闭">×</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 主体内容 -->
+    <div class="panel-body" id="panel-body">
+      <!-- 加载状态 -->
+      <div class="loading-state" id="loading-state">
+        <div class="spinner"></div>
+        <p>正在加载用户信息...</p>
+      </div>
+
+      <!-- 内容区域 -->
+      <div class="panel-content" id="panel-content" style="display: none;">
+        <!-- 邮箱信息 -->
+        <div class="section">
+          <div class="email-header">
+            <h3 class="section-title">邮箱</h3>
+            <div class="auto-toggle">
+              <span class="auto-label">自动</span>
+              <label class="switch">
+                <input type="checkbox" id="auto-email-toggle" checked>
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+          <div class="email-box">
+            <div class="email-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="5" width="18" height="14" rx="2" ry="2"></rect>
+                <polyline points="3 7 12 13 21 7"></polyline>
+              </svg>
+            </div>
+            <input type="text" id="user-email" class="email-display" readonly value="加载中...">
+          </div>
+          <div class="email-meta">
+            <span class="email-source">来源简介，可信度</span>
+            <span class="email-trust high">高</span>
+          </div>
+        </div>
+
+        <!-- 发邮件 -->
+        <div class="section">
+          <h3 class="section-title">发邮件</h3>
+          <div class="template-selector-wrapper">
+            <select id="template-select" class="template-select-new">
+              <option value="">选择邮件模板</option>
+            </select>
+            <div class="select-arrow">
+              <svg width="12" height="12" viewBox="0 0 12 12" fill="white">
+                <path d="M2 4 L6 8 L10 4" stroke="white" stroke-width="1.5" fill="none"/>
+              </svg>
+            </div>
+          </div>
+          <div id="template-preview" class="template-preview-new" style="display: none;">
+            <div id="template-content" class="template-content-new"></div>
+          </div>
+          <a href="#" id="manage-templates" class="link-new-template">新建模板</a>
+        </div>
+
+        <!-- 工作经历 -->
+        <div class="section">
+          <h3 class="section-title">工作经历</h3>
+          <div id="experience-list" class="timeline-list">
+            <!-- 动态加载 -->
+          </div>
+          <div id="experience-empty" class="empty-message" style="display: none;">
+            暂无工作经历信息
+          </div>
+        </div>
+
+        <!-- 教育经历 -->
+        <div class="section">
+          <h3 class="section-title">教育经历</h3>
+          <div id="education-list" class="timeline-list">
+            <!-- 动态加载 -->
+          </div>
+          <div id="education-empty" class="empty-message" style="display: none;">
+            暂无教育经历信息
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 最小化状态标签 -->
+    <div class="minimized-tab" id="minimized-tab" style="display: none;">
+      <span>用户详情</span>
+    </div>
+  </div>
+
+  <script src="floating-panel.js"></script>
+</body>
+</html>
+

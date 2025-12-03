@@ -6,6 +6,12 @@ chrome.action.onClicked.addListener((tab) => {
   chrome.sidePanel.open({ windowId: tab.windowId })
     .then(() => {
       console.log('侧边栏已打开（通过图标点击）');
+      // 通知 content script 侧边栏已打开
+      if (tab.id) {
+        chrome.tabs.sendMessage(tab.id, { 
+          type: 'SIDEPANEL_OPENED' 
+        }).catch(() => {});
+      }
     })
     .catch((error) => {
       console.error('打开侧边栏失败：', error);
@@ -21,6 +27,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       chrome.sidePanel.open({ windowId: sender.tab.windowId })
         .then(() => {
           console.log('侧边栏已打开（通过浮动按钮）');
+          // 通知 content script 侧边栏已打开
+          chrome.tabs.sendMessage(sender.tab.id, { 
+            type: 'SIDEPANEL_OPENED' 
+          }).catch(() => {});
           sendResponse({ success: true });
         })
         .catch((error) => {

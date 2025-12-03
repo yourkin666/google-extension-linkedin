@@ -1,0 +1,581 @@
+/**
+ * 浮动面板逻辑
+ * 处理拖动、最小化、数据显示等功能
+ */
+
+// 防止重复声明
+if (typeof FloatingPanel === 'undefined') {
+  
+class FloatingPanel {
+  constructor() {
+    this.panel = null;
+    this.isDragging = false;
+    this.currentX = 0;
+    this.currentY = 0;
+    this.initialX = 0;
+    this.initialY = 0;
+    this.xOffset = 0;
+    this.yOffset = 0;
+    
+    this.userData = null;
+    this.templates = [];
+    
+    this.isSidePanelOpen = false;
+    
+    this.init();
+  }
+  
+  init() {
+    this.panel = document.getElementById('colink-floating-panel');
+    if (!this.panel) return;
+    
+    // 绑定事件
+    this.bindDragEvents();
+    this.bindButtonEvents();
+    this.listenToSidePanelStatus();
+    
+    // 加载数据
+    this.loadUserData();
+    this.loadTemplates();
+    
+    // 设置初始位置（右侧）
+    this.setInitialPosition();
+  }
+  
+  /**
+   * 拖动功能
+   */
+  bindDragEvents() {
+    const header = document.getElementById('panel-header');
+    if (!header) return;
+    
+    header.addEventListener('mousedown', (e) => this.dragStart(e));
+    document.addEventListener('mousemove', (e) => this.drag(e));
+    document.addEventListener('mouseup', () => this.dragEnd());
+  }
+  
+  dragStart(e) {
+    // 如果点击的是按钮，不触发拖动
+    if (e.target.closest('.btn-minimize') || e.target.closest('.btn-close')) {
+      return;
+    }
+    
+    this.initialX = e.clientX - this.xOffset;
+    this.initialY = e.clientY - this.yOffset;
+    
+    this.isDragging = true;
+    this.panel.style.cursor = 'grabbing';
+  }
+  
+  drag(e) {
+    if (!this.isDragging) return;
+    
+    e.preventDefault();
+    
+    this.currentX = e.clientX - this.initialX;
+    this.currentY = e.clientY - this.initialY;
+    
+    this.xOffset = this.currentX;
+    this.yOffset = this.currentY;
+    
+    // 限制在窗口内
+    const maxX = window.innerWidth - this.panel.offsetWidth;
+    const maxY = window.innerHeight - this.panel.offsetHeight;
+    
+    this.xOffset = Math.max(0, Math.min(this.xOffset, maxX));
+    this.yOffset = Math.max(0, Math.min(this.yOffset, maxY));
+    
+    this.setTranslate(this.xOffset, this.yOffset);
+  }
+  
+  dragEnd() {
+    if (!this.isDragging) return;
+    
+    this.isDragging = false;
+    this.panel.style.cursor = '';
+  }
+  
+  setTranslate(xPos, yPos) {
+    this.panel.style.transform = `translate(${xPos}px, ${yPos}px)`;
+    this.panel.style.top = '0';
+    this.panel.style.right = 'auto';
+    this.panel.style.left = '0';
+  }
+  
+  
+  /**
+   * 监听侧边栏状态
+   */
+  listenToSidePanelStatus() {
+    // 监听来自 background 的侧边栏状态消息
+    window.addEventListener('message', (event) => {
+      if (event.data.type === 'COLINK_SIDEPANEL_STATUS') {
+        const isOpen = event.data.isOpen;
+        this.handleSidePanelChange(isOpen);
+      }
+    });
+  }
+  
+  /**
+   * 处理侧边栏状态变化
+   */
+  handleSidePanelChange(isOpen) {
+    if (this.isSidePanelOpen === isOpen) return;
+    
+    this.isSidePanelOpen = isOpen;
+    
+    // 添加过渡动画
+    this.panel.style.transition = 'transform 0.3s ease-out';
+    
+    if (isOpen) {
+      // 侧边栏打开，强制移到左侧
+      console.log('CoLink: 侧边栏打开，移动到左侧');
+      this.setDefaultLeftPosition();
+    } else {
+      // 侧边栏关闭，强制移回右侧
+      console.log('CoLink: 侧边栏关闭，移回右侧');
+      this.setDefaultRightPosition();
+    }
+    
+    // 动画完成后移除transition
+    setTimeout(() => {
+      this.panel.style.transition = '';
+    }, 300);
+  }
+  
+  setInitialPosition() {
+    // 始终从右侧开始
+    this.setDefaultRightPosition();
+  }
+  
+  setDefaultRightPosition() {
+    // 默认右侧位置
+    const rightMargin = 20;
+    const topMargin = (window.innerHeight - this.panel.offsetHeight) / 2;
+    
+    this.xOffset = window.innerWidth - this.panel.offsetWidth - rightMargin;
+    this.yOffset = topMargin;
+    this.setTranslate(this.xOffset, this.yOffset);
+  }
+  
+  setDefaultLeftPosition() {
+    // 紧贴侧边栏左侧（侧边栏一般宽度约 400px）
+    const sidePanelWidth = 400; // Chrome 侧边栏默认宽度
+    const gap = 10; // 与侧边栏的间距
+    const topMargin = (window.innerHeight - this.panel.offsetHeight) / 2;
+    
+    // 计算位置：从右边开始，减去侧边栏宽度，再减去浮动窗口宽度和间距
+    this.xOffset = window.innerWidth - sidePanelWidth - this.panel.offsetWidth - gap;
+    this.yOffset = topMargin;
+    this.setTranslate(this.xOffset, this.yOffset);
+  }
+  
+  /**
+   * 按钮事件
+   */
+  bindButtonEvents() {
+    // 最小化
+    const btnMinimize = document.getElementById('btn-minimize');
+    if (btnMinimize) {
+      btnMinimize.addEventListener('click', () => this.minimize());
+    }
+    
+    // 关闭
+    const btnClose = document.getElementById('btn-close');
+    if (btnClose) {
+      btnClose.addEventListener('click', () => this.close());
+    }
+    
+    // 从最小化状态恢复
+    const minimizedTab = document.getElementById('minimized-tab');
+    if (minimizedTab) {
+      minimizedTab.addEventListener('click', () => this.restore());
+    }
+    
+    // 点击邮箱复制
+    const emailDisplay = document.getElementById('user-email');
+    if (emailDisplay) {
+      emailDisplay.addEventListener('click', () => this.copyEmail());
+      emailDisplay.style.cursor = 'pointer';
+      emailDisplay.title = '点击复制邮箱';
+    }
+    
+    // 模板选择
+    const templateSelect = document.getElementById('template-select');
+    if (templateSelect) {
+      templateSelect.addEventListener('change', (e) => this.onTemplateChange(e));
+    }
+    
+    // 管理模板
+    const manageTemplates = document.getElementById('manage-templates');
+    if (manageTemplates) {
+      manageTemplates.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.openTemplateManager();
+      });
+    }
+  }
+  
+  minimize() {
+    this.panel.classList.add('minimized');
+    const minimizedTab = document.getElementById('minimized-tab');
+    if (minimizedTab) {
+      minimizedTab.style.display = 'block';
+    }
+  }
+  
+  restore() {
+    this.panel.classList.remove('minimized');
+    const minimizedTab = document.getElementById('minimized-tab');
+    if (minimizedTab) {
+      minimizedTab.style.display = 'none';
+    }
+  }
+  
+  close() {
+    this.panel.classList.add('hidden');
+    // 通知 content script 面板已关闭
+    window.postMessage({ type: 'COLINK_PANEL_CLOSED' }, '*');
+  }
+  
+  show() {
+    this.panel.classList.remove('hidden');
+    this.panel.classList.remove('minimized');
+    const minimizedTab = document.getElementById('minimized-tab');
+    if (minimizedTab) {
+      minimizedTab.style.display = 'none';
+    }
+  }
+  
+  /**
+   * 加载用户数据
+   */
+  async loadUserData() {
+    try {
+      // 显示加载状态
+      document.getElementById('loading-state').style.display = 'flex';
+      document.getElementById('panel-content').style.display = 'none';
+      
+      // 等待页面加载完成
+      await this.waitForPageLoad();
+      
+      // 从页面抓取数据
+      const userData = window.scrapeUserProfile ? window.scrapeUserProfile() : {};
+      this.userData = userData;
+      
+      // 获取邮箱（模拟API）
+      const email = await this.fetchEmail();
+      this.userData.email = email;
+      
+      // 渲染数据
+      this.renderUserData();
+      
+      // 隐藏加载，显示内容
+      document.getElementById('loading-state').style.display = 'none';
+      document.getElementById('panel-content').style.display = 'flex';
+      
+    } catch (error) {
+      console.error('加载用户数据失败:', error);
+      document.getElementById('loading-state').innerHTML = `
+        <p style="color: #ef4444;">加载失败，请刷新重试</p>
+      `;
+    }
+  }
+  
+  waitForPageLoad() {
+    return new Promise((resolve) => {
+      if (document.readyState === 'complete') {
+        setTimeout(resolve, 1000); // 等待1秒确保内容渲染
+      } else {
+        window.addEventListener('load', () => {
+          setTimeout(resolve, 1000);
+        });
+      }
+    });
+  }
+  
+  async fetchEmail() {
+    // TODO: 替换为真实API
+    // 模拟API延迟
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // 返回模拟邮箱
+    const name = this.userData?.name || 'user';
+    const mockEmail = `${name.toLowerCase().replace(/\s+/g, '.')}@example.com`;
+    return mockEmail;
+  }
+  
+  renderUserData() {
+    if (!this.userData) return;
+    
+    // 邮箱
+    const email = document.getElementById('user-email');
+    if (email) {
+      email.value = this.userData.email || '暂无邮箱';
+    }
+    
+    // 工作经历
+    this.renderExperience();
+    
+    // 教育经历
+    this.renderEducation();
+  }
+  
+  renderExperience() {
+    const list = document.getElementById('experience-list');
+    const empty = document.getElementById('experience-empty');
+    
+    if (!this.userData.experience || this.userData.experience.length === 0) {
+      if (list) list.innerHTML = '';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    
+    if (empty) empty.style.display = 'none';
+    
+    if (list) {
+      list.innerHTML = this.userData.experience.map(exp => `
+        <div class="timeline-item">
+          ${exp.logo 
+            ? `<img src="${exp.logo}" alt="${exp.company}" class="timeline-logo">` 
+            : `<div class="timeline-logo placeholder">W</div>`
+          }
+          <div class="timeline-content">
+            <div class="timeline-title">${this.escapeHtml(exp.title)}</div>
+            <div class="timeline-subtitle">${this.escapeHtml(exp.company)}</div>
+            <div class="timeline-date">${this.escapeHtml(exp.dates)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+  
+  renderEducation() {
+    const list = document.getElementById('education-list');
+    const empty = document.getElementById('education-empty');
+    
+    if (!this.userData.education || this.userData.education.length === 0) {
+      if (list) list.innerHTML = '';
+      if (empty) empty.style.display = 'block';
+      return;
+    }
+    
+    if (empty) empty.style.display = 'none';
+    
+    if (list) {
+      list.innerHTML = this.userData.education.map(edu => `
+        <div class="timeline-item">
+          ${edu.logo 
+            ? `<img src="${edu.logo}" alt="${edu.school}" class="timeline-logo">` 
+            : `<div class="timeline-logo placeholder">E</div>`
+          }
+          <div class="timeline-content">
+            <div class="timeline-title">${this.escapeHtml(edu.school)}</div>
+            <div class="timeline-subtitle">${this.escapeHtml(edu.degree)}</div>
+            <div class="timeline-date">${this.escapeHtml(edu.dates)}</div>
+          </div>
+        </div>
+      `).join('');
+    }
+  }
+  
+  /**
+   * 邮件模板
+   */
+  async loadTemplates() {
+    try {
+      // 从 storage 加载模板
+      const result = await chrome.storage.local.get(['emailTemplates']);
+      this.templates = result.emailTemplates || this.getDefaultTemplates();
+      this.renderTemplates();
+    } catch (error) {
+      console.error('加载模板失败:', error);
+      this.templates = this.getDefaultTemplates();
+      this.renderTemplates();
+    }
+  }
+  
+  getDefaultTemplates() {
+    return [
+      {
+        id: 'default-1',
+        name: '通用招聘',
+        subject: 'Exciting opportunity at {company}',
+        content: `Hi {name},
+
+I hope this email finds you well. I came across your profile on LinkedIn and was impressed by your experience at {company}.
+
+We have an exciting opportunity that I think would be a great fit for your background.
+
+Would you be open to a quick chat?
+
+Best regards`
+      },
+      {
+        id: 'default-2',
+        name: '技术职位',
+        subject: 'Technical Role - {company}',
+        content: `Hello {name},
+
+I'm reaching out regarding a technical position at our company. Your background in {title} caught my attention.
+
+Would you be interested in learning more?
+
+Thanks!`
+      }
+    ];
+  }
+  
+  renderTemplates() {
+    const select = document.getElementById('template-select');
+    if (!select) return;
+    
+    select.innerHTML = '<option value="">选择邮件模板...</option>';
+    
+    this.templates.forEach(template => {
+      const option = document.createElement('option');
+      option.value = template.id;
+      option.textContent = template.name;
+      select.appendChild(option);
+    });
+  }
+  
+  onTemplateChange(e) {
+    const templateId = e.target.value;
+    const preview = document.getElementById('template-preview');
+    const content = document.getElementById('template-content');
+    
+    if (!templateId) {
+      if (preview) preview.style.display = 'none';
+      return;
+    }
+    
+    const template = this.templates.find(t => t.id === templateId);
+    if (!template) return;
+    
+    // 替换变量，包含主题
+    const renderedSubject = this.renderTemplate(template.subject);
+    const renderedContent = this.renderTemplate(template.content);
+    
+    const fullContent = `主题: ${renderedSubject}\n\n${renderedContent}`;
+    
+    if (content) {
+      content.textContent = fullContent;
+    }
+    if (preview) {
+      preview.style.display = 'block';
+    }
+  }
+  
+  renderTemplate(template) {
+    if (!this.userData) return template;
+    
+    return template
+      .replace(/\{name\}/g, this.userData.name || 'there')
+      .replace(/\{title\}/g, this.userData.title || 'your role')
+      .replace(/\{company\}/g, this.extractCompany() || 'your company')
+      .replace(/\{location\}/g, this.userData.location || 'your location');
+  }
+  
+  extractCompany() {
+    if (!this.userData.experience || this.userData.experience.length === 0) {
+      return '';
+    }
+    return this.userData.experience[0].company;
+  }
+  
+  /**
+   * 复制邮箱
+   */
+  async copyEmail() {
+    const emailInput = document.getElementById('user-email');
+    if (!emailInput) return;
+    
+    const email = emailInput.value;
+    
+    try {
+      await navigator.clipboard.writeText(email);
+      this.showToast('邮箱已复制');
+    } catch (error) {
+      console.error('复制失败:', error);
+      // 降级方案
+      emailInput.select();
+      document.execCommand('copy');
+      this.showToast('邮箱已复制');
+    }
+  }
+  
+  /**
+   * 打开模板管理器
+   */
+  openTemplateManager() {
+    // 向 background 发送消息打开侧边栏并切换到模板管理标签
+    if (window.chrome && chrome.runtime) {
+      chrome.runtime.sendMessage({ 
+        type: 'OPEN_SIDEPANEL',
+        tab: 'templates'
+      });
+    }
+  }
+  
+  /**
+   * 工具函数
+   */
+  escapeHtml(text) {
+    if (!text) return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+  
+  showToast(message) {
+    // 创建 toast
+    const toast = document.createElement('div');
+    toast.textContent = message;
+    toast.style.cssText = `
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #10b981;
+      color: white;
+      padding: 12px 20px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      z-index: 9999999;
+      animation: slideInRight 0.3s ease-out;
+    `;
+    
+    document.body.appendChild(toast);
+    
+    // 3秒后移除
+    setTimeout(() => {
+      toast.style.animation = 'slideOutRight 0.3s ease-in';
+      setTimeout(() => {
+        if (toast.parentNode) {
+          toast.parentNode.removeChild(toast);
+        }
+      }, 300);
+    }, 3000);
+  }
+}
+
+// 初始化（防止重复初始化）
+if (!window.colinkFloatingPanel) {
+  let panelInstance = null;
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      panelInstance = new FloatingPanel();
+    });
+  } else {
+    panelInstance = new FloatingPanel();
+  }
+
+  // 导出实例供外部使用
+  window.colinkFloatingPanel = panelInstance;
+}
+
+} // 结束 FloatingPanel 类定义的 if 块
+

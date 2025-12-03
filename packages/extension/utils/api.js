@@ -27,3 +27,31 @@ async function getSimilarUsers(username) {
   }
 }
 
+/**
+ * 获取用户邮箱
+ * @param {string} username - LinkedIn username
+ * @returns {Promise<string>} 邮箱地址
+ */
+async function getUserEmail(username) {
+  try {
+    // TODO: 替换为真实的邮箱API
+    const response = await fetch(`${API_BASE_URL}/email?username=${encodeURIComponent(username)}`);
+    
+    if (!response.ok) {
+      throw new Error(`API 请求失败: ${response.status}`);
+    }
+    
+    const result = await response.json();
+    
+    if (!result.success) {
+      throw new Error(result.message || '获取邮箱失败');
+    }
+    
+    return result.data.email;
+  } catch (error) {
+    console.error('获取邮箱失败:', error);
+    // 返回模拟邮箱
+    return `${username}@example.com`;
+  }
+}
+

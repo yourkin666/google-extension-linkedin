@@ -41,6 +41,97 @@ function notifySidePanel() {
 }
 
 /**
+ * 浮动面板相关
+ */
+let floatingPanelContainer = null;
+let floatingPanelVisible = false;
+
+/**
+ * 创建浮动面板
+ */
+async function createFloatingPanel() {
+  // 如果面板已存在，不重复创建
+  if (floatingPanelContainer) {
+    return;
+  }
+
+  try {
+    // 检查CSS是否已加载
+    if (!document.getElementById('colink-panel-css')) {
+      const cssLink = document.createElement('link');
+      cssLink.id = 'colink-panel-css';
+      cssLink.rel = 'stylesheet';
+      cssLink.type = 'text/css';
+      cssLink.href = chrome.runtime.getURL('floating-panel/floating-panel.css');
+      document.head.appendChild(cssLink);
+    }
+    
+    // 检查LinkedIn数据抓取脚本是否已加载
+    if (!document.getElementById('colink-scraper-script')) {
+      const scraperScript = document.createElement('script');
+      scraperScript.id = 'colink-scraper-script';
+      scraperScript.src = chrome.runtime.getURL('utils/linkedin-scraper.js');
+      document.head.appendChild(scraperScript);
+    }
+    
+    // 等待脚本加载
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // 加载HTML内容
+    const htmlUrl = chrome.runtime.getURL('floating-panel/floating-panel.html');
+    const response = await fetch(htmlUrl);
+    let htmlText = await response.text();
+    
+    // 移除HTML中的head标签和body标签，只保留内容
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(htmlText, 'text/html');
+    const panelContent = doc.body.innerHTML;
+    
+    // 创建容器
+    floatingPanelContainer = document.createElement('div');
+    floatingPanelContainer.id = 'colink-floating-panel-container';
+    floatingPanelContainer.innerHTML = panelContent;
+    
+    // 添加到页面
+    document.body.appendChild(floatingPanelContainer);
+    floatingPanelVisible = true;
+    
+    // 延迟加载浮动面板逻辑脚本（只加载一次）
+    if (!document.getElementById('colink-panel-script')) {
+      const panelScript = document.createElement('script');
+      panelScript.id = 'colink-panel-script';
+      panelScript.src = chrome.runtime.getURL('floating-panel/floating-panel.js');
+      document.head.appendChild(panelScript);
+    }
+    
+    console.log('CoLink: 浮动面板已创建');
+  } catch (error) {
+    console.error('CoLink: 创建浮动面板失败', error);
+  }
+}
+
+/**
+ * 移除浮动面板
+ */
+function removeFloatingPanel() {
+  if (floatingPanelContainer && floatingPanelContainer.parentNode) {
+    floatingPanelContainer.parentNode.removeChild(floatingPanelContainer);
+    floatingPanelContainer = null;
+    floatingPanelVisible = false;
+    console.log('CoLink: 浮动面板已移除');
+  }
+}
+
+/**
+ * 监听来自浮动面板的关闭消息
+ */
+window.addEventListener('message', (event) => {
+  if (event.data.type === 'COLINK_PANEL_CLOSED') {
+    removeFloatingPanel();
+  }
+});
+
+/**
  * 创建浮动按钮
  */
 let floatingButton = null;
@@ -199,23 +290,28 @@ function forceShowFloatingButton() {
 }
 
 /**
- * 更新浮动按钮显示状态
+ * 更新浮动按钮和面板显示状态
  */
 function updateFloatingButtonVisibility() {
   const username = extractLinkedInUsername();
   
   if (username) {
-    // 在用户主页，显示按钮
+    // 在用户主页，显示按钮和面板
     if (!floatingButton) {
       createFloatingButton();
     }
+    // 自动显示浮动面板
+    if (!floatingPanelVisible) {
+      createFloatingPanel();
+    }
   } else {
-    // 不在用户主页，隐藏按钮
+    // 不在用户主页，隐藏按钮和面板
     removeFloatingButton();
+    removeFloatingPanel();
   }
 }
 
-// 监听来自 background 的消息（例如侧边栏关闭）
+// 监听来自 background 的消息
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message.type === 'SIDEPANEL_CLOSED') {
     console.log('CoLink: 侧边栏已关闭，重新显示按钮');
@@ -223,6 +319,21 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     setTimeout(() => {
       forceShowFloatingButton();
     }, 100);
+    
+    // 通知浮动窗口侧边栏已关闭
+    window.postMessage({ 
+      type: 'COLINK_SIDEPANEL_STATUS', 
+      isOpen: false 
+    }, '*');
+  }
+  
+  if (message.type === 'SIDEPANEL_OPENED') {
+    console.log('CoLink: 侧边栏已打开');
+    // 通知浮动窗口侧边栏已打开
+    window.postMessage({ 
+      type: 'COLINK_SIDEPANEL_STATUS', 
+      isOpen: true 
+    }, '*');
   }
 });
 

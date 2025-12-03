@@ -13,6 +13,7 @@ const elements = {
   tabButtons: document.querySelectorAll('.tab-btn'),
   mainTab: document.getElementById('main-tab'),
   favoritesTab: document.getElementById('favorites-tab'),
+  templatesTab: document.getElementById('templates-tab'),
   
   // Status
   loading: document.getElementById('loading'),
@@ -38,6 +39,19 @@ const elements = {
   // Favorites
   favoritesList: document.getElementById('favorites-list'),
   favoritesEmpty: document.getElementById('favorites-empty'),
+  
+  // Templates
+  templatesList: document.getElementById('templates-list'),
+  templatesEmpty: document.getElementById('templates-empty'),
+  btnAddTemplate: document.getElementById('btn-add-template'),
+  templateModal: document.getElementById('template-modal'),
+  modalTitle: document.getElementById('modal-title'),
+  modalClose: document.getElementById('modal-close'),
+  btnCancelTemplate: document.getElementById('btn-cancel-template'),
+  btnSaveTemplate: document.getElementById('btn-save-template'),
+  templateName: document.getElementById('template-name'),
+  templateSubject: document.getElementById('template-subject'),
+  templateBody: document.getElementById('template-body'),
 };
 
 // 初始化
@@ -80,10 +94,17 @@ async function switchTab(tabName) {
   if (tabName === 'main') {
     elements.mainTab.classList.add('active');
     elements.favoritesTab.classList.remove('active');
+    elements.templatesTab.classList.remove('active');
   } else if (tabName === 'favorites') {
     elements.mainTab.classList.remove('active');
     elements.favoritesTab.classList.add('active');
+    elements.templatesTab.classList.remove('active');
     await loadFavorites();
+  } else if (tabName === 'templates') {
+    elements.mainTab.classList.remove('active');
+    elements.favoritesTab.classList.remove('active');
+    elements.templatesTab.classList.add('active');
+    await loadTemplates();
   }
 }
 
@@ -364,6 +385,220 @@ window.addEventListener('beforeunload', () => {
   });
 });
 
+// ==================== 邮件模板管理 ====================
+
+let currentEditingTemplateId = null;
+
+// 获取默认模板
+function getDefaultTemplates() {
+  return [
+    {
+      id: 'default-1',
+      name: '通用招聘',
+      subject: 'Exciting opportunity at {company}',
+      content: `Hi {name},
+
+I hope this email finds you well. I came across your profile on LinkedIn and was impressed by your experience at {company}.
+
+We have an exciting opportunity that I think would be a great fit for your background.
+
+Would you be open to a quick chat?
+
+Best regards`
+    },
+    {
+      id: 'default-2',
+      name: '技术职位',
+      subject: 'Technical Role - {company}',
+      content: `Hello {name},
+
+I'm reaching out regarding a technical position at our company. Your background in {title} caught my attention.
+
+Would you be interested in learning more?
+
+Thanks!`
+    }
+  ];
+}
+
+// 加载邮件模板列表
+async function loadTemplates() {
+  const result = await chrome.storage.local.get(['emailTemplates']);
+  let templates = result.emailTemplates;
+  
+  // 如果没有模板，使用默认模板
+  if (!templates || templates.length === 0) {
+    templates = getDefaultTemplates();
+    await chrome.storage.local.set({ emailTemplates: templates });
+  }
+  
+  if (templates.length === 0) {
+    elements.templatesList.innerHTML = '';
+    elements.templatesEmpty.style.display = 'block';
+    return;
+  }
+  
+  elements.templatesEmpty.style.display = 'none';
+  
+  elements.templatesList.innerHTML = templates.map(template => `
+    <div class="template-card" data-id="${template.id}">
+      <div class="template-card-header">
+        <div class="template-card-name">${escapeHtml(template.name)}</div>
+        <div class="template-card-actions">
+          <button class="btn-small btn-visit" data-action="edit" data-id="${template.id}">
+            编辑
+          </button>
+          <button class="btn-small btn-remove" data-action="delete" data-id="${template.id}">
+            删除
+          </button>
+        </div>
+      </div>
+      <div class="template-card-subject">主题: ${escapeHtml(template.subject)}</div>
+      <div class="template-card-preview">${escapeHtml(template.content)}</div>
+    </div>
+  `).join('');
+  
+  // 绑定按钮事件
+  document.querySelectorAll('[data-action="edit"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      openEditModal(id);
+    });
+  });
+  
+  document.querySelectorAll('[data-action="delete"]').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.dataset.id;
+      if (confirm('确定要删除这个模板吗？')) {
+        await deleteTemplate(id);
+      }
+    });
+  });
+}
+
+// 打开新建模板对话框
+function openAddModal() {
+  currentEditingTemplateId = null;
+  elements.modalTitle.textContent = '新建模板';
+  elements.templateName.value = '';
+  elements.templateSubject.value = '';
+  elements.templateBody.value = '';
+  elements.templateModal.style.display = 'flex';
+}
+
+// 打开编辑模板对话框
+async function openEditModal(templateId) {
+  const result = await chrome.storage.local.get(['emailTemplates']);
+  const templates = result.emailTemplates || [];
+  const template = templates.find(t => t.id === templateId);
+  
+  if (!template) return;
+  
+  currentEditingTemplateId = templateId;
+  elements.modalTitle.textContent = '编辑模板';
+  elements.templateName.value = template.name;
+  elements.templateSubject.value = template.subject;
+  elements.templateBody.value = template.content;
+  elements.templateModal.style.display = 'flex';
+}
+
+// 关闭模态框
+function closeModal() {
+  elements.templateModal.style.display = 'none';
+  currentEditingTemplateId = null;
+}
+
+// 保存模板
+async function saveTemplate() {
+  const name = elements.templateName.value.trim();
+  const subject = elements.templateSubject.value.trim();
+  const content = elements.templateBody.value.trim();
+  
+  if (!name) {
+    alert('请输入模板名称');
+    return;
+  }
+  
+  if (!subject) {
+    alert('请输入邮件主题');
+    return;
+  }
+  
+  if (!content) {
+    alert('请输入邮件内容');
+    return;
+  }
+  
+  const result = await chrome.storage.local.get(['emailTemplates']);
+  let templates = result.emailTemplates || [];
+  
+  if (currentEditingTemplateId) {
+    // 编辑现有模板
+    const index = templates.findIndex(t => t.id === currentEditingTemplateId);
+    if (index !== -1) {
+      templates[index] = {
+        ...templates[index],
+        name,
+        subject,
+        content
+      };
+    }
+  } else {
+    // 新建模板
+    const newTemplate = {
+      id: `template-${Date.now()}`,
+      name,
+      subject,
+      content
+    };
+    templates.push(newTemplate);
+  }
+  
+  await chrome.storage.local.set({ emailTemplates: templates });
+  closeModal();
+  await loadTemplates();
+}
+
+// 删除模板
+async function deleteTemplate(templateId) {
+  const result = await chrome.storage.local.get(['emailTemplates']);
+  let templates = result.emailTemplates || [];
+  
+  templates = templates.filter(t => t.id !== templateId);
+  
+  await chrome.storage.local.set({ emailTemplates: templates });
+  await loadTemplates();
+}
+
+// HTML转义
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// 绑定模板管理事件
+function setupTemplateEventListeners() {
+  // 新建模板
+  elements.btnAddTemplate?.addEventListener('click', openAddModal);
+  
+  // 关闭模态框
+  elements.modalClose?.addEventListener('click', closeModal);
+  elements.btnCancelTemplate?.addEventListener('click', closeModal);
+  
+  // 保存模板
+  elements.btnSaveTemplate?.addEventListener('click', saveTemplate);
+  
+  // 点击模态框背景关闭
+  elements.templateModal?.addEventListener('click', (e) => {
+    if (e.target === elements.templateModal) {
+      closeModal();
+    }
+  });
+}
+
 // 启动应用
 init();
+setupTemplateEventListeners();
 
