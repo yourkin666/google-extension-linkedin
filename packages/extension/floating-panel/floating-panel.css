@@ -4,7 +4,7 @@
   top: 50%;
   right: 20px;
   transform: translateY(-50%);
-  width: 260px;
+  width: 300px;
   max-height: 85vh;
   background: #ffffff;
   border-radius: 8px;
@@ -181,11 +181,12 @@
 /* 邮箱输入框 */
 .email-input {
   width: 100%;
-  padding: 6px 8px;
+  height: 28px;
+  padding: 0 8px;
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
   border-radius: 5px;
-  font-size: 11px;
+  font-size: 10px;
   color: #374151;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   transition: all 0.2s ease;
@@ -195,6 +196,7 @@
 
 .email-input::placeholder {
   color: #9ca3af;
+  font-size: 10px;
 }
 
 .email-input:hover {
@@ -252,15 +254,16 @@
   border-radius: 5px;
   overflow: hidden;
   margin-bottom: 0;
-  height: 28px;
+  height: 32px;
   background: transparent;
+  gap: 0;
 }
 
 .template-select {
   flex: 1;
-  padding: 0 8px;
-  padding-right: 26px;
-  background: #f3f4f6 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 8px center;
+  min-width: 0;
+  padding: 0 30px 0 10px;
+  background: #f3f4f6 url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='9' height='9' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") no-repeat right 10px center;
   border: none;
   border-radius: 5px 0 0 5px;
   font-size: 11px;
@@ -271,6 +274,7 @@
   text-align: left;
   font-weight: 500;
   transition: all 0.2s;
+  box-sizing: border-box;
 }
 
 .template-select:hover {
@@ -292,26 +296,26 @@
 /* 操作按钮（发送） */
 .action-btn {
   flex-shrink: 0;
-  width: 36px;
+  width: 40px;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: transparent;
+  background: #0a66c2;
   border: none;
   border-radius: 0 5px 5px 0;
   cursor: pointer;
   transition: all 0.2s ease;
-  color: #6b7280;
+  color: white;
   padding: 0;
 }
 
 .action-btn:hover {
-  background: #0a66c2;
+  background: #004182;
   color: white;
 }
 
 .action-btn:active {
-  background: #004182;
+  background: #002952;
 }
 
 .action-btn svg {
