@@ -30,7 +30,7 @@ class FloatingPanel {
     if (!this.panel) return;
     
     // 绑定事件
-    this.bindDragEvents();
+    // this.bindDragEvents(); // 已删除头部拖动区域
     this.bindButtonEvents();
     this.listenToSidePanelStatus();
     
@@ -203,23 +203,23 @@ class FloatingPanel {
    * 按钮事件
    */
   bindButtonEvents() {
-    // 最小化
-    const btnMinimize = document.getElementById('btn-minimize');
-    if (btnMinimize) {
-      btnMinimize.addEventListener('click', () => this.minimize());
-    }
+    // 最小化按钮已删除
+    // const btnMinimize = document.getElementById('btn-minimize');
+    // if (btnMinimize) {
+    //   btnMinimize.addEventListener('click', () => this.minimize());
+    // }
     
-    // 关闭
-    const btnClose = document.getElementById('btn-close');
-    if (btnClose) {
-      btnClose.addEventListener('click', () => this.close());
-    }
+    // 关闭按钮已删除
+    // const btnClose = document.getElementById('btn-close');
+    // if (btnClose) {
+    //   btnClose.addEventListener('click', () => this.close());
+    // }
     
-    // 从最小化状态恢复
-    const minimizedTab = document.getElementById('minimized-tab');
-    if (minimizedTab) {
-      minimizedTab.addEventListener('click', () => this.restore());
-    }
+    // 最小化标签已删除
+    // const minimizedTab = document.getElementById('minimized-tab');
+    // if (minimizedTab) {
+    //   minimizedTab.addEventListener('click', () => this.restore());
+    // }
     
     // 点击邮箱复制
     const emailInput = document.getElementById('user-email');
