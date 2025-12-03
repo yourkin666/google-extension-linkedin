@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CoLink</title>
+  <link rel="stylesheet" href="sidepanel.css">
+</head>
+<body>
+  <div class="container">
+    <!-- 头部 -->
+    <header class="header">
+      <h1 class="title">🔗 CoLink</h1>
+      <div class="tabs">
+        <button class="tab-btn active" data-tab="main">找相似</button>
+        <button class="tab-btn" data-tab="favorites">已收藏</button>
+      </div>
+    </header>
+
+    <!-- 主界面：找相似用户 -->
+    <div id="main-tab" class="tab-content active">
+      <!-- 状态显示区 -->
+      <div id="status-area">
+        <!-- 加载中 -->
+        <div id="loading" class="status-card" style="display: none;">
+          <div class="loader"></div>
+          <p>正在查找相似用户...</p>
+        </div>
+
+        <!-- 错误提示 -->
+        <div id="error" class="status-card error" style="display: none;">
+          <p id="error-message"></p>
+        </div>
+
+        <!-- 非个人主页提示 -->
+        <div id="not-profile" class="status-card info">
+          <p>📌 这里不是用户主页，没法找相似哦～</p>
+          <p class="hint">先打开一个特别符合你理想用户主页，再点"找相似"按钮。</p>
+        </div>
+        
+        <!-- 待开始状态 -->
+        <div id="ready-to-start" class="status-card info" style="display: none;">
+          <p>👤 已识别用户主页</p>
+          <p class="hint">点击下方按钮，基于当前用户找相似</p>
+          <button id="btn-start-search" class="btn btn-primary">
+            🔍 找相似
+          </button>
+        </div>
+      </div>
+
+      <!-- 统计信息 -->
+      <div id="stats" class="stats" style="display: none;">
+        <div class="stat-item">
+          <div class="stat-label">待筛选</div>
+          <div class="stat-value" id="pending-count">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">已收藏</div>
+          <div class="stat-value" id="favorite-count">0</div>
+        </div>
+      </div>
+
+      <!-- 当前推荐用户 -->
+      <div id="current-user" style="display: none;">
+        <!-- 操作按钮 -->
+        <div class="actions">
+          <button id="btn-skip" class="btn btn-skip">
+            👋 NO
+          </button>
+          <button id="btn-like" class="btn btn-like">
+            ✅ 收藏
+          </button>
+        </div>
+        
+        <!-- 停止按钮 -->
+        <button id="btn-stop" class="btn btn-stop">
+          ⏹️ 停止筛选
+        </button>
+      </div>
+    </div>
+
+    <!-- 收藏列表页面 -->
+    <div id="favorites-tab" class="tab-content">
+      <div id="favorites-list"></div>
+      <div id="favorites-empty" class="empty-state" style="display: none;">
+        <p>📭 暂无收藏</p>
+        <p class="hint">在找相似页面点击"收藏"按钮保存候选人</p>
+      </div>
+    </div>
+    
+    <!-- 页脚 -->
+    <footer class="footer">
+      <p>遇到问题可联系wx:yourkin666</p>
+    </footer>
+  </div>
+
+  <script src="../utils/storage.js"></script>
+  <script src="../utils/api.js"></script>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
+

@@ -1,0 +1,15 @@
+#!/bin/bash
+# 这个脚本用于将 SVG 转换为 PNG（需要安装 ImageMagick 或使用在线工具）
+echo "请使用以下方法之一将 icon.svg 转换为 PNG："
+echo ""
+echo "方法 1 - 使用在线工具："
+echo "  访问 https://cloudconvert.com/svg-to-png"
+echo "  上传 icon.svg"
+echo "  分别设置尺寸为 16x16, 48x48, 128x128"
+echo "  下载并重命名为 icon16.png, icon48.png, icon128.png"
+echo ""
+echo "方法 2 - 使用 ImageMagick（需先安装）："
+echo "  brew install imagemagick"
+echo "  convert -background none icon.svg -resize 16x16 icon16.png"
+echo "  convert -background none icon.svg -resize 48x48 icon48.png"
+echo "  convert -background none icon.svg -resize 128x128 icon128.png"

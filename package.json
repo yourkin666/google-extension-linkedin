@@ -1,0 +1,20 @@
+{
+  "name": "colink",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CoLink - LinkedIn 招聘助手 Chrome 插件 + 后端服务",
+  "scripts": {
+    "dev:backend": "pnpm --filter backend dev",
+    "dev:extension": "pnpm --filter extension dev",
+    "build:backend": "pnpm --filter backend build",
+    "build:extension": "pnpm --filter extension build",
+    "dev": "concurrently \"pnpm dev:backend\" \"pnpm dev:extension\""
+  },
+  "keywords": ["linkedin", "chrome-extension", "recruiter"],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

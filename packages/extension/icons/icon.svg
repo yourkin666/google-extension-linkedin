@@ -1,0 +1,21 @@
+<svg width="128" height="128" viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="128" height="128" rx="24" fill="url(#gradient)"/>
+  
+  <!-- 渐变定义 -->
+  <defs>
+    <linearGradient id="gradient" x1="0" y1="0" x2="128" y2="128" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#667eea"/>
+      <stop offset="100%" stop-color="#764ba2"/>
+    </linearGradient>
+  </defs>
+  
+  <!-- 人物图标 -->
+  <circle cx="64" cy="48" r="16" fill="white" opacity="0.9"/>
+  <path d="M 36 84 Q 36 64 64 64 Q 92 64 92 84 L 92 96 L 36 96 Z" fill="white" opacity="0.9"/>
+  
+  <!-- 搜索符号 -->
+  <circle cx="88" cy="88" r="12" stroke="white" stroke-width="4" fill="none"/>
+  <line x1="96" y1="96" x2="106" y2="106" stroke="white" stroke-width="4" stroke-linecap="round"/>
+</svg>
+

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>CoLink 测试</title>
+  <style>
+    body {
+      padding: 20px;
+      font-family: Arial, sans-serif;
+    }
+    .status { padding: 10px; margin: 10px 0; border-radius: 5px; }
+    .success { background: #d4edda; color: #155724; }
+    .error { background: #f8d7da; color: #721c24; }
+  </style>
+</head>
+<body>
+  <h1>🔗 CoLink 调试面板</h1>
+  <div id="results"></div>
+  
+  <script>
+    const results = document.getElementById('results');
+    
+    function addResult(message, type = 'success') {
+      const div = document.createElement('div');
+      div.className = `status ${type}`;
+      div.textContent = message;
+      results.appendChild(div);
+    }
+    
+    // 测试 1: Chrome API
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      addResult('✅ Chrome API 可用');
+    } else {
+      addResult('❌ Chrome API 不可用', 'error');
+    }
+    
+    // 测试 2: 后端连接
+    fetch('http://localhost:3000/health')
+      .then(res => res.json())
+      .then(data => {
+        addResult('✅ 后端连接成功: ' + data.status);
+      })
+      .catch(err => {
+        addResult('❌ 后端连接失败: ' + err.message, 'error');
+      });
+    
+    // 测试 3: Storage 读写
+    if (typeof chrome !== 'undefined' && chrome.storage) {
+      chrome.storage.local.set({ test: 'hello' }, () => {
+        chrome.storage.local.get('test', (result) => {
+          if (result.test === 'hello') {
+            addResult('✅ Chrome Storage 正常');
+          } else {
+            addResult('❌ Chrome Storage 读写失败', 'error');
+          }
+        });
+      });
+    }
+    
+    // 测试 4: 当前 URL
+    chrome.storage.local.get('currentUsername', (result) => {
+      if (result.currentUsername) {
+        addResult('✅ 当前用户名: ' + result.currentUsername);
+      } else {
+        addResult('⚠️ 未检测到 LinkedIn 用户名（请访问 LinkedIn 个人主页）', 'error');
+      }
+    });
+    
+    console.log('CoLink 调试面板已加载');
+  </script>
+</body>
+</html>
+
