@@ -473,8 +473,8 @@ class FloatingPanel {
     if (empty) empty.style.display = 'none';
     
     if (list) {
-      list.innerHTML = this.userData.experience.map(exp => `
-        <div class="timeline-item">
+      list.innerHTML = this.userData.experience.map((exp, index) => `
+        <div class="timeline-item clickable-timeline-item" data-company="${this.escapeHtml(exp.company)}" data-index="${index}">
           ${exp.logo 
             ? `<img src="${exp.logo}" alt="${exp.company}" class="timeline-logo">` 
             : `<div class="timeline-logo placeholder">W</div>`
@@ -484,9 +484,31 @@ class FloatingPanel {
             <div class="timeline-subtitle">${this.escapeHtml(exp.company)}</div>
             <div class="timeline-date">${this.escapeHtml(exp.dates)}</div>
           </div>
+          <span class="timeline-arrow">→</span>
         </div>
       `).join('');
+      
+      // 为每个工作经历项添加点击事件
+      const items = list.querySelectorAll('.clickable-timeline-item');
+      items.forEach(item => {
+        item.addEventListener('click', (e) => {
+          const company = item.getAttribute('data-company');
+          if (company) {
+            this.openCompanyGoogle(company);
+          }
+        });
+      });
     }
+  }
+  
+  /**
+   * 在新标签页中打开公司的 Google 搜索结果
+   */
+  openCompanyGoogle(companyName) {
+    const searchQuery = encodeURIComponent(companyName);
+    const googleSearchUrl = `https://www.google.com/search?q=${searchQuery}`;
+    window.open(googleSearchUrl, '_blank');
+    this.showToast(`正在搜索 ${companyName}`, 'info');
   }
   
   renderEducation() {
@@ -502,8 +524,8 @@ class FloatingPanel {
     if (empty) empty.style.display = 'none';
     
     if (list) {
-      list.innerHTML = this.userData.education.map(edu => `
-        <div class="timeline-item">
+      list.innerHTML = this.userData.education.map((edu, index) => `
+        <div class="timeline-item clickable-timeline-item" data-school="${this.escapeHtml(edu.school)}" data-index="${index}">
           ${edu.logo 
             ? `<img src="${edu.logo}" alt="${edu.school}" class="timeline-logo">` 
             : `<div class="timeline-logo placeholder">E</div>`
@@ -513,9 +535,31 @@ class FloatingPanel {
             <div class="timeline-subtitle">${this.escapeHtml(edu.degree)}</div>
             <div class="timeline-date">${this.escapeHtml(edu.dates)}</div>
           </div>
+          <span class="timeline-arrow">→</span>
         </div>
       `).join('');
+      
+      // 为每个教育经历项添加点击事件
+      const items = list.querySelectorAll('.clickable-timeline-item');
+      items.forEach(item => {
+        item.addEventListener('click', (e) => {
+          const school = item.getAttribute('data-school');
+          if (school) {
+            this.openSchoolGoogle(school);
+          }
+        });
+      });
     }
+  }
+  
+  /**
+   * 在新标签页中打开学校的 Google 搜索结果
+   */
+  openSchoolGoogle(schoolName) {
+    const searchQuery = encodeURIComponent(schoolName);
+    const googleSearchUrl = `https://www.google.com/search?q=${searchQuery}`;
+    window.open(googleSearchUrl, '_blank');
+    this.showToast(`正在搜索 ${schoolName}`, 'info');
   }
   
   /**

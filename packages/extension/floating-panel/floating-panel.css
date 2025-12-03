@@ -389,6 +389,7 @@
 
 .timeline-item {
   display: flex;
+  align-items: center;
   gap: 6px;
   padding: 6px;
   background: #f9fafb;
@@ -399,6 +400,47 @@
 .timeline-item:hover {
   background: #f3f4f6;
   transform: translateX(2px);
+}
+
+/* 可点击的工作经历项样式 */
+.clickable-timeline-item {
+  cursor: pointer;
+  position: relative;
+}
+
+.clickable-timeline-item:hover {
+  background: #e8f4ff;
+  border-left: 3px solid #0a66c2;
+  padding-left: 3px;
+  box-shadow: 0 2px 4px rgba(10, 102, 194, 0.1);
+}
+
+.clickable-timeline-item:hover .timeline-subtitle {
+  color: #0a66c2;
+  font-weight: 500;
+}
+
+.clickable-timeline-item:active {
+  transform: translateX(2px) scale(0.98);
+  background: #dbeafe;
+}
+
+/* 箭头图标 */
+.timeline-arrow {
+  font-size: 14px;
+  color: #9ca3af;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  opacity: 0.5;
+  margin-left: 4px;
+  line-height: 1;
+  user-select: none;
+}
+
+.clickable-timeline-item:hover .timeline-arrow {
+  color: #0a66c2;
+  opacity: 1;
+  transform: translateX(3px);
 }
 
 .timeline-logo {
