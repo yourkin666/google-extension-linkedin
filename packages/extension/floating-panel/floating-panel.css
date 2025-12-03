@@ -178,37 +178,56 @@
   padding: 8px;
 }
 
-/* 邮箱输入框 */
-.email-input {
+/* 邮箱框框 */
+.email-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   width: 100%;
-  height: 28px;
-  padding: 0 8px;
+  height: 32px;
+  padding: 0 12px;
   background: #f3f4f6;
   border: 1px solid #e5e7eb;
   border-radius: 5px;
-  font-size: 10px;
-  color: #374151;
+  font-size: 11px;
+  color: #6b7280;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
   transition: all 0.2s ease;
   box-sizing: border-box;
   cursor: pointer;
+  user-select: none;
 }
 
-.email-input::placeholder {
-  color: #9ca3af;
-  font-size: 10px;
+.email-icon {
+  width: 16px;
+  height: 16px;
+  stroke: #6b7280;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
 }
 
-.email-input:hover {
+.email-text {
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.email-box:hover {
   background: #e5e7eb;
   border-color: #d1d5db;
 }
 
-.email-input:focus {
-  outline: none;
-  background: white;
-  border-color: #0a66c2;
-  box-shadow: 0 0 0 3px rgba(10, 102, 194, 0.1);
+.email-box:hover .email-icon {
+  stroke: #374151;
+}
+
+.email-box:hover .email-text {
+  color: #374151;
+}
+
+.email-box:active {
+  background: #d1d5db;
+  transform: scale(0.98);
 }
 
 /* 发邮件部分 - 简约设计 */
@@ -580,9 +599,15 @@
   pointer-events: none;
 }
 
-/* 邮箱输入框骨架 */
-.email-input.skeleton {
+/* 邮箱框框骨架 */
+.email-box.skeleton {
   color: transparent !important;
   cursor: default !important;
+  pointer-events: none;
+}
+
+.email-box.skeleton .email-icon,
+.email-box.skeleton .email-text {
+  opacity: 0;
 }
 

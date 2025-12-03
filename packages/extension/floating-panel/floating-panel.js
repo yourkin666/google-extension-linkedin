@@ -221,12 +221,10 @@ class FloatingPanel {
     //   minimizedTab.addEventListener('click', () => this.restore());
     // }
     
-    // 点击邮箱复制
-    const emailInput = document.getElementById('user-email');
-    if (emailInput) {
-      emailInput.addEventListener('click', () => this.copyEmail());
-      emailInput.style.cursor = 'pointer';
-      emailInput.title = '点击复制邮箱';
+    // 点击邮箱框框
+    const emailBox = document.getElementById('user-email');
+    if (emailBox) {
+      emailBox.addEventListener('click', () => this.showEmailFeatureInDevelopment());
     }
     
     // 模板选择
@@ -383,11 +381,9 @@ class FloatingPanel {
    */
   showSkeletonScreen() {
     // 邮箱骨架
-    const emailInput = document.getElementById('user-email');
-    if (emailInput) {
-      emailInput.value = '';
-      emailInput.placeholder = '加载中...';
-      emailInput.classList.add('skeleton');
+    const emailBox = document.getElementById('user-email');
+    if (emailBox) {
+      emailBox.classList.add('skeleton');
     }
     
     // 工作经历骨架
@@ -409,10 +405,9 @@ class FloatingPanel {
    * 隐藏骨架屏
    */
   hideSkeletonScreen() {
-    const emailInput = document.getElementById('user-email');
-    if (emailInput) {
-      emailInput.classList.remove('skeleton');
-      emailInput.placeholder = '该功能开发中';
+    const emailBox = document.getElementById('user-email');
+    if (emailBox) {
+      emailBox.classList.remove('skeleton');
     }
     
     const experienceList = document.getElementById('experience-list');
@@ -456,17 +451,7 @@ class FloatingPanel {
   renderUserData() {
     if (!this.userData) return;
     
-    // 邮箱
-    const emailInput = document.getElementById('user-email');
-    if (emailInput) {
-      const emailValue = this.userData.email || '暂无邮箱';
-      emailInput.value = emailValue;
-      // 如果没有邮箱，显示placeholder
-      if (emailValue === '暂无邮箱') {
-        emailInput.value = '';
-        emailInput.placeholder = '暂无邮箱';
-      }
-    }
+    // 邮箱模块已改为固定显示"查找邮箱"，不需要渲染
     
     // 工作经历
     this.renderExperience();
@@ -614,24 +599,10 @@ Thanks!`
   }
   
   /**
-   * 复制邮箱
+   * 显示邮箱功能开发中提示
    */
-  async copyEmail() {
-    const emailInput = document.getElementById('user-email');
-    if (!emailInput) return;
-    
-    const email = emailInput.value;
-    
-    try {
-      await navigator.clipboard.writeText(email);
-      this.showToast('邮箱已复制');
-    } catch (error) {
-      console.error('复制失败:', error);
-      // 降级方案
-      emailInput.select();
-      document.execCommand('copy');
-      this.showToast('邮箱已复制');
-    }
+  showEmailFeatureInDevelopment() {
+    this.showToast('该功能开发中', 'info');
   }
   
   /**
