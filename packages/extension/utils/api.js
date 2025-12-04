@@ -1,7 +1,10 @@
 // API 调用工具
 // 非模块化版本 - 全局函数
 
+// 开发环境
 const API_BASE_URL = 'http://localhost:3000/api/linkedin';
+// 生产环境
+// const API_BASE_URL = 'https://your-api-domain.com/api/linkedin';
 
 /**
  * 通过 username 获取相似用户

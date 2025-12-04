@@ -7,11 +7,6 @@ import { config } from './env';
 function buildTransport() {
   // 如果不输出到文件，只使用控制台
   if (!config.log.toFile) {
-    // 如果控制台也不输出，返回 undefined（静默模式）
-    if (!config.log.toConsole) {
-      return undefined;
-    }
-    
     return config.log.pretty
       ? {
           target: 'pino-pretty',
@@ -28,29 +23,27 @@ function buildTransport() {
   // 输出到文件时，使用多目标配置
   const targets: any[] = [];
 
-  // 控制台输出（如果启用）
-  if (config.log.toConsole) {
-    if (config.log.pretty) {
-      targets.push({
-        target: 'pino-pretty',
-        level: config.log.level,
-        options: {
-          translateTime: config.log.timeFormat,
-          ignore: 'pid,hostname',
-          colorize: config.log.colorize,
-          singleLine: false,
-        },
-      });
-    } else {
-      // 生产环境控制台输出 JSON
-      targets.push({
-        target: 'pino/file',
-        level: config.log.level,
-        options: {
-          destination: 1, // stdout
-        },
-      });
-    }
+  // 控制台输出（美化）
+  if (config.log.pretty) {
+    targets.push({
+      target: 'pino-pretty',
+      level: config.log.level,
+      options: {
+        translateTime: config.log.timeFormat,
+        ignore: 'pid,hostname',
+        colorize: config.log.colorize,
+        singleLine: false,
+      },
+    });
+  } else {
+    // 生产环境控制台输出 JSON
+    targets.push({
+      target: 'pino/file',
+      level: config.log.level,
+      options: {
+        destination: 1, // stdout
+      },
+    });
   }
 
   // 所有日志写入文件（JSON 格式）
