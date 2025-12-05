@@ -29,7 +29,22 @@ extension/
 
 ## 安装方法
 
-### 1. 准备图标
+### 1. 配置环境变量
+
+首次使用需要配置 `.env` 文件：
+
+```bash
+# 复制配置模板
+cp .env.example .env
+
+# 编辑 .env 文件，填入实际配置
+# 然后构建配置文件
+npm run build:config
+```
+
+详细配置说明请查看 [CONFIG.md](./CONFIG.md)
+
+### 2. 准备图标
 
 在 `icons/` 目录下放置三个尺寸的图标：
 - icon16.png
@@ -38,7 +53,7 @@ extension/
 
 临时方案：可以从网上下载任意 PNG 图标，调整尺寸后使用。
 
-### 2. 加载插件到 Chrome
+### 3. 加载插件到 Chrome
 
 1. 打开 Chrome 浏览器
 2. 访问 `chrome://extensions/`
@@ -46,7 +61,7 @@ extension/
 4. 点击**加载已解压的扩展程序**
 5. 选择 `packages/extension` 文件夹
 
-### 3. 确保后端服务运行
+### 4. 确保后端服务运行
 
 ```bash
 cd packages/backend
@@ -89,10 +104,41 @@ https://www.linkedin.com/in/yike-li-coco/
 
 ## 配置
 
-如需修改后端 API 地址，编辑 `utils/api.js`：
+### 环境配置
 
-```javascript
-const API_BASE_URL = 'http://localhost:3000/api/linkedin';
+所有配置项都通过 `.env` 文件管理，包括：
+- Supabase 配置（URL 和密钥）
+- API 地址（开发/生产环境）
+- 运行环境标识
+
+**修改配置步骤：**
+
+1. 编辑 `.env` 文件
+2. 运行 `npm run build:config` 重新生成配置
+3. 在 Chrome 中重新加载扩展
+
+详细说明请查看 [CONFIG.md](./CONFIG.md)
+
+### 环境切换
+
+**开发环境：**
+```bash
+# .env 中设置
+API_BASE_URL=http://localhost:3000/api/linkedin
+NODE_ENV=development
+
+# 重新构建配置
+npm run build:config
+```
+
+**生产环境：**
+```bash
+# .env 中设置
+API_BASE_URL=https://colink.in/api/linkedin
+NODE_ENV=production
+
+# 重新构建配置
+npm run build:config
 ```
 
 ## 常见问题

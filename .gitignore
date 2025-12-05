@@ -7,3 +7,4 @@ build
 .env.local
 pnpm-lock.yaml
 
+/packages/extension/utils/config.generated.js

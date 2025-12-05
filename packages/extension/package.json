@@ -3,8 +3,9 @@
   "version": "1.0.0",
   "description": "CoLink - LinkedIn 招聘助手 Chrome 插件",
   "scripts": {
-    "dev": "echo '开发模式：直接在 Chrome 中加载 dist 目录'",
-    "build": "echo '生产构建完成'"
+    "dev": "npm run build:config && echo '开发模式：直接在 Chrome 中加载 dist 目录'",
+    "build": "npm run build:config && echo '生产构建完成'",
+    "build:config": "node scripts/build-config.js"
   }
 }
 
