@@ -1,6 +1,7 @@
 import { FastifyBaseLogger } from 'fastify';
 import { createLogger } from '../utils/logger';
 import { config } from '../config/env';
+import type { LinkedInService } from './types';
 
 // API 响应类型
 interface APIResponse {
@@ -96,3 +97,12 @@ export async function getSimilarProfiles(urn: string, logger: FastifyBaseLogger)
   return result.data;
 }
 
+/**
+ * Service 工厂：提供面向接口的调用，便于注入与替换实现
+ */
+export function createLinkedInService(): LinkedInService {
+  return {
+    getUserURN,
+    getSimilarProfiles,
+  };
+}

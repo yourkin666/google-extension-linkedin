@@ -1,7 +1,12 @@
 import { FastifyInstance } from 'fastify';
-import { getUserURN, getSimilarProfiles } from '../services/linkedin';
+import type { LinkedInService } from '../services/types';
+import { createLinkedInService } from '../services/linkedin';
 
-export default async function linkedinRoutes(fastify: FastifyInstance) {
+export default async function linkedinRoutes(
+  fastify: FastifyInstance,
+  opts: { service?: LinkedInService } = {}
+) {
+  const service = opts.service ?? createLinkedInService();
   // 根据 username 获取 URN
   fastify.get<{
     Querystring: { username: string };
@@ -21,7 +26,7 @@ export default async function linkedinRoutes(fastify: FastifyInstance) {
 
     try {
       const startTime = Date.now();
-      const data = await getUserURN(username, request.log);
+      const data = await service.getUserURN(username, request.log);
       const duration = Date.now() - startTime;
       
       request.log.info({ reqId, username, duration, urn: data.urn }, '✅ 成功获取 URN');
@@ -58,7 +63,7 @@ export default async function linkedinRoutes(fastify: FastifyInstance) {
 
     try {
       const startTime = Date.now();
-      const data = await getSimilarProfiles(urn, request.log);
+      const data = await service.getSimilarProfiles(urn, request.log);
       const duration = Date.now() - startTime;
       
       request.log.info(
@@ -101,13 +106,13 @@ export default async function linkedinRoutes(fastify: FastifyInstance) {
       
       // 1. 获取 URN
       request.log.debug({ reqId, username }, '🔄 步骤 1/2: 获取 URN');
-      const urnData = await getUserURN(username, request.log);
+      const urnData = await service.getUserURN(username, request.log);
       const urn = urnData.urn;
       request.log.debug({ reqId, username, urn }, '✓ 步骤 1/2 完成');
 
       // 2. 获取相似用户
       request.log.debug({ reqId, urn }, '🔄 步骤 2/2: 获取相似用户');
-      const similarData = await getSimilarProfiles(urn, request.log);
+      const similarData = await service.getSimilarProfiles(urn, request.log);
       request.log.debug({ reqId, profileCount: similarData?.length || 0 }, '✓ 步骤 2/2 完成');
 
       const duration = Date.now() - startTime;
@@ -145,4 +150,3 @@ export default async function linkedinRoutes(fastify: FastifyInstance) {
     }
   });
 }
-

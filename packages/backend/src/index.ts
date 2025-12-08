@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import linkedinRoutes from './routes/linkedin';
+import { createLinkedInService } from './services/linkedin';
 import { fastifyLoggerConfig } from './config/logger';
 import { config, validateConfig, printConfig } from './config/env';
 
@@ -26,8 +27,9 @@ fastify.register(cors, {
   credentials: config.cors.credentials,
 });
 
-// 注册路由
-fastify.register(linkedinRoutes, { prefix: config.api.prefix });
+// 注册路由（依赖注入 Service）
+const linkedInService = createLinkedInService();
+fastify.register(linkedinRoutes, { prefix: config.api.prefix, service: linkedInService });
 
 // 健康检查
 fastify.get('/health', async () => {
@@ -59,4 +61,3 @@ const start = async () => {
 };
 
 start();
-

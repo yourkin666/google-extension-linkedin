@@ -352,7 +352,7 @@ class FloatingPanel {
       // LinkedIn 是 SPA，需要等待内容真正加载
       const checkContent = () => {
         // 检查关键元素是否已加载
-        const nameElement = document.querySelector('h1.text-heading-xlarge');
+        const nameElement = document.querySelector('h1.text-heading-xlarge') || document.querySelector('main h1');
         if (nameElement && nameElement.textContent.trim()) {
           // 找到内容了，清除超时定时器
           if (timeoutId) clearTimeout(timeoutId);
@@ -662,9 +662,27 @@ class FloatingPanel {
    */
   async loadTemplates() {
     try {
-      // 从 storage 加载模板
-      const result = await chrome.storage.local.get(['emailTemplates']);
-      this.templates = result.emailTemplates || this.getDefaultTemplates();
+      let templates = null;
+
+      // 优先使用 chrome.storage（仅在扩展环境可用，页面上下文不可用）
+      if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
+        const result = await chrome.storage.local.get(['emailTemplates']);
+        templates = result.emailTemplates || null;
+      }
+
+      // 兜底使用 window.localStorage（页面上下文可用）
+      if (!templates && typeof window !== 'undefined' && window.localStorage) {
+        try {
+          const raw = window.localStorage.getItem('colink_emailTemplates');
+          if (raw) {
+            templates = JSON.parse(raw);
+          }
+        } catch (_) {
+          // 忽略解析失败
+        }
+      }
+
+      this.templates = templates || this.getDefaultTemplates();
       this.renderTemplates();
     } catch (error) {
       console.error('加载模板失败:', error);
@@ -707,9 +725,14 @@ Thanks!`
   renderTemplates() {
     const select = document.getElementById('template-select');
     if (!select) return;
-    
-    select.innerHTML = '<option value="">-- 选择邮件模板 --</option>';
-    
+
+    // 清空再渲染，避免 innerHTML 触发宿主页面的 HTML sanitize 日志
+    select.textContent = '';
+    const placeholder = document.createElement('option');
+    placeholder.value = '';
+    placeholder.textContent = '-- 选择邮件模板 --';
+    select.appendChild(placeholder);
+
     this.templates.forEach(template => {
       const option = document.createElement('option');
       option.value = template.id;
@@ -862,4 +885,3 @@ if (!window.colinkFloatingPanel) {
 }
 
 } // 结束 FloatingPanel 类定义的 if 块
-
