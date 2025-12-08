@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import linkedinRoutes from './routes/linkedin';
+import authPlugin from './middleware/auth';
 import { createLinkedInService } from './services/linkedin';
 import { fastifyLoggerConfig } from './config/logger';
 import { config, validateConfig, printConfig } from './config/env';
@@ -26,6 +27,9 @@ fastify.register(cors, {
   origin: corsOrigin,
   credentials: config.cors.credentials,
 });
+
+// 注册鉴权（仅作用于业务 API 前缀）
+fastify.register(authPlugin, { prefix: config.api.prefix } as any);
 
 // 注册路由（依赖注入 Service）
 const linkedInService = createLinkedInService();

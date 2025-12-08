@@ -10,9 +10,15 @@ const API_BASE_URL = (typeof CONFIG !== 'undefined' && CONFIG.api)
  */
 async function getSimilarUsers(username) {
   try {
-    const response = await fetch(`${API_BASE_URL}/similar-by-username?username=${encodeURIComponent(username)}`);
+    const token = (typeof getAccessToken === 'function') ? await getAccessToken() : null;
+    const response = await fetch(`${API_BASE_URL}/similar-by-username?username=${encodeURIComponent(username)}` , {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('未登录或登录已过期，请先登录');
+      }
       throw new Error(`API 请求失败: ${response.status}`);
     }
     
@@ -37,9 +43,15 @@ async function getSimilarUsers(username) {
 async function getUserEmail(username) {
   try {
     // TODO: 替换为真实的邮箱API
-    const response = await fetch(`${API_BASE_URL}/email?username=${encodeURIComponent(username)}`);
+    const token = (typeof getAccessToken === 'function') ? await getAccessToken() : null;
+    const response = await fetch(`${API_BASE_URL}/email?username=${encodeURIComponent(username)}`, {
+      headers: token ? { 'Authorization': `Bearer ${token}` } : undefined,
+    });
     
     if (!response.ok) {
+      if (response.status === 401) {
+        throw new Error('未登录或登录已过期，请先登录');
+      }
       throw new Error(`API 请求失败: ${response.status}`);
     }
     
@@ -56,4 +68,3 @@ async function getUserEmail(username) {
     return `${username}@example.com`;
   }
 }
-

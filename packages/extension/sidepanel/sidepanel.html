@@ -15,6 +15,11 @@
         <button class="tab-btn active" data-tab="main">找相似</button>
         <button class="tab-btn" data-tab="favorites">已收藏</button>
       </div>
+      <div id="auth-info" class="auth-info" style="display: none;">
+        <img id="auth-avatar" class="avatar-small" alt="avatar" />
+        <span id="auth-email" class="auth-email"></span>
+        <a id="auth-logout" class="auth-logout" href="#">退出</a>
+      </div>
     </header>
 
     <!-- 主界面：找相似用户 -->
@@ -36,6 +41,13 @@
         <div id="not-profile" class="status-card info">
           <p>📌 这里不是用户主页，没法找相似哦～</p>
           <p class="hint">先打开一个特别符合你理想用户主页，再点"找相似"按钮。</p>
+        </div>
+
+        <!-- 未登录提示 -->
+        <div id="auth-required" class="status-card info" style="display: none;">
+          <p>🔐 请先登录以使用「找相似」功能</p>
+          <p class="hint">登录后我们将使用 Supabase 保护你的请求</p>
+          <button id="btn-login-now" class="btn btn-primary">立即登录</button>
         </div>
         
         <!-- 待开始状态 -->
@@ -79,8 +91,14 @@
       </div>
     </div>
 
-    <!-- 收藏列表页面 -->
-    <div id="favorites-tab" class="tab-content">
+  <!-- 收藏列表页面 -->
+  <div id="favorites-tab" class="tab-content">
+      <!-- 未登录提示（收藏页） -->
+      <div id="auth-required-fav" class="status-card info" style="display: none;">
+        <p>🔐 请先登录以同步访问受保护的功能</p>
+        <p class="hint">登录后将启用所有需要鉴权的请求</p>
+        <button id="btn-login-now-fav" class="btn btn-primary">立即登录</button>
+      </div>
       <div id="favorites-list"></div>
       <div id="favorites-empty" class="empty-state" style="display: none;">
         <p>📭 暂无收藏</p>
@@ -95,9 +113,9 @@
   </div>
 
   <script src="../utils/config.generated.js"></script>
+  <script src="../utils/auth.js"></script>
   <script src="../utils/storage.js"></script>
   <script src="../utils/api.js"></script>
   <script src="sidepanel.js"></script>
 </body>
 </html>
-

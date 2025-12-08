@@ -55,6 +55,14 @@ export const config = {
   api: {
     prefix: process.env.API_PREFIX || '/api/linkedin',
   },
+
+  // Supabase 配置（用于鉴权）
+  supabase: {
+    url: process.env.SUPABASE_URL || '',
+    anonKey: process.env.SUPABASE_ANON_KEY || '',
+    // 可选：若未来改为本地 JWT 校验，可使用此密钥
+    jwtSecret: process.env.SUPABASE_JWT_SECRET || '',
+  },
 };
 
 // 初始化计算属性
@@ -66,6 +74,13 @@ export function validateConfig() {
 
   if (!config.rapidApi.key) {
     errors.push('❌ RAPIDAPI_KEY 未设置！请在 .env 文件中配置');
+  }
+
+  if (!config.supabase.url) {
+    errors.push('❌ SUPABASE_URL 未设置！所有后端接口启用鉴权需要该配置');
+  }
+  if (!config.supabase.anonKey) {
+    errors.push('❌ SUPABASE_ANON_KEY 未设置！所有后端接口启用鉴权需要该配置');
   }
 
   if (errors.length > 0) {
@@ -93,5 +108,6 @@ export function printConfig() {
   }
   console.log(`  RapidAPI Host: ${config.rapidApi.host}`);
   console.log(`  RapidAPI Key: ${config.rapidApi.key ? config.rapidApi.key.substring(0, 10) + '...' : '未设置'}\n`);
+  console.log(`  Supabase URL: ${config.supabase.url || '未设置'}`);
+  console.log(`  Supabase Anon Key: ${config.supabase.anonKey ? config.supabase.anonKey.substring(0, 10) + '...' : '未设置'}\n`);
 }
-

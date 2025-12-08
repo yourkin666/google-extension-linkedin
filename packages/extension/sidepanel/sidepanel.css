@@ -32,6 +32,39 @@ body {
   font-weight: 600;
 }
 
+.auth-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.avatar-small {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: #e5e7eb;
+  border: 2px solid white;
+}
+
+.auth-email {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.auth-logout {
+  font-size: 12px;
+  color: #fff;
+  opacity: 0.9;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.auth-logout:hover {
+  opacity: 1;
+}
+
 .tabs {
   display: flex;
   gap: 8px;
@@ -376,4 +409,3 @@ body {
   color: #9ca3af;
   margin: 0;
 }
-

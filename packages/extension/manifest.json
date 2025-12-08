@@ -5,12 +5,14 @@
   "description": "Linkedin 查邮箱&找相似，支持递归查找相似用户",
   "permissions": [
     "storage",
+    "identity",
     "activeTab",
     "sidePanel"
   ],
   "host_permissions": [
     "https://www.linkedin.com/*",
-    "http://localhost:3000/*"
+    "http://localhost:3000/*",
+    "https://hmtjgfpnpxdjbxlfqqmc.supabase.co/*"
   ],
   "background": {
     "service_worker": "background/background.js"
@@ -46,4 +48,3 @@
     }
   ]
 }
-

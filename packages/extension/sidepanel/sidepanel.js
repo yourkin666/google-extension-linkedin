@@ -19,6 +19,7 @@ const elements = {
   error: document.getElementById('error'),
   errorMessage: document.getElementById('error-message'),
   notProfile: document.getElementById('not-profile'),
+  authRequired: document.getElementById('auth-required'),
   readyToStart: document.getElementById('ready-to-start'),
   
   // Stats
@@ -34,6 +35,13 @@ const elements = {
   btnSkip: document.getElementById('btn-skip'),
   btnLike: document.getElementById('btn-like'),
   btnStop: document.getElementById('btn-stop'),
+  btnLoginNow: document.getElementById('btn-login-now'),
+  authRequiredFav: document.getElementById('auth-required-fav'),
+  btnLoginNowFav: document.getElementById('btn-login-now-fav'),
+  authInfo: document.getElementById('auth-info'),
+  authEmail: document.getElementById('auth-email'),
+  authAvatar: document.getElementById('auth-avatar'),
+  authLogout: document.getElementById('auth-logout'),
   
   // Favorites
   favoritesList: document.getElementById('favorites-list'),
@@ -45,6 +53,7 @@ async function init() {
   setupEventListeners();
   await checkCurrentPage();
   await updateStats();
+  await updateAuthUI();
 }
 
 // 设置事件监听
@@ -67,6 +76,47 @@ function setupEventListeners() {
   elements.btnSkip.addEventListener('click', handleSkip);
   elements.btnLike.addEventListener('click', handleLike);
   elements.btnStop.addEventListener('click', handleStop);
+  if (elements.btnLoginNow) {
+    elements.btnLoginNow.addEventListener('click', async () => {
+      try {
+        await loginWithGoogle();
+        await updateAuthUI();
+        await checkCurrentPage();
+      } catch (e) {
+        console.error('登录失败:', e);
+        alert('登录失败，请重试');
+      }
+    });
+  }
+  if (elements.btnLoginNowFav) {
+    elements.btnLoginNowFav.addEventListener('click', async () => {
+      try {
+        await loginWithGoogle();
+        await updateAuthUI();
+        await loadFavorites();
+      } catch (e) {
+        console.error('登录失败:', e);
+        alert('登录失败，请重试');
+      }
+    });
+  }
+  if (elements.authLogout) {
+    elements.authLogout.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try {
+        await logout();
+        await updateAuthUI();
+        await checkCurrentPage();
+        // 若当前在收藏页，刷新收藏列表以更新按钮禁用状态
+        const activeTab = document.querySelector('.tab-btn.active');
+        if (activeTab && activeTab.dataset.tab === 'favorites') {
+          await loadFavorites();
+        }
+      } catch (err) {
+        console.error('退出失败:', err);
+      }
+    });
+  }
   
   // 监听 storage 变化
   chrome.storage.onChanged.addListener((changes) => {
@@ -76,7 +126,101 @@ function setupEventListeners() {
         checkCurrentPage();
       }
     }
+    if (changes.supabaseSession) {
+      updateAuthUI();
+      if (!isSearching) {
+        checkCurrentPage();
+      }
+    }
   });
+}
+
+// 更新认证按钮状态
+async function updateAuthUI() {
+  try {
+    const session = await getSession();
+    if (session && session.access_token) {
+      if (elements.btnStartSearch) {
+        elements.btnStartSearch.disabled = false;
+        elements.btnStartSearch.title = '';
+      }
+      // 展示邮箱与头像
+      const info = extractUserInfo(session);
+      if (elements.authInfo) {
+        elements.authInfo.style.display = 'flex';
+      }
+      if (elements.authEmail) {
+        elements.authEmail.textContent = info.email || '已登录';
+      }
+      if (elements.authAvatar) {
+        if (info.avatar_url) {
+          elements.authAvatar.src = info.avatar_url;
+          elements.authAvatar.style.display = 'block';
+        } else {
+          elements.authAvatar.style.display = 'none';
+        }
+      }
+      // 隐藏收藏页未登录提示
+      if (elements.authRequiredFav) {
+        elements.authRequiredFav.style.display = 'none';
+      }
+      // 启用收藏页操作按钮
+      updateFavoritesActionsState(true);
+    } else {
+      if (elements.btnStartSearch) {
+        elements.btnStartSearch.disabled = true;
+        elements.btnStartSearch.title = '请先登录';
+      }
+      if (elements.authInfo) {
+        elements.authInfo.style.display = 'none';
+      }
+      // 显示收藏页未登录提示
+      if (elements.authRequiredFav) {
+        elements.authRequiredFav.style.display = 'block';
+      }
+      // 禁用收藏页操作按钮
+      updateFavoritesActionsState(false);
+    }
+  } catch {}
+}
+
+// 根据登录状态启用/禁用收藏页内的操作
+function updateFavoritesActionsState(isLoggedIn) {
+  const visitBtns = document.querySelectorAll('.btn-visit');
+  const removeBtns = document.querySelectorAll('.btn-remove');
+  visitBtns.forEach(btn => {
+    btn.disabled = !isLoggedIn;
+    btn.title = isLoggedIn ? '' : '请先登录';
+  });
+  removeBtns.forEach(btn => {
+    btn.disabled = !isLoggedIn;
+    btn.title = isLoggedIn ? '' : '请先登录';
+  });
+}
+
+// 从 session 或 JWT 中解析用户信息
+function extractUserInfo(session) {
+  const info = { email: '', avatar_url: '' };
+  // 优先使用 session.user
+  const user = session && session.user || null;
+  if (user) {
+    info.email = user.email || '';
+    const meta = user.user_metadata || user.identities?.[0]?.identity_data || {};
+    info.avatar_url = meta.avatar_url || meta.picture || '';
+    if (info.email && info.avatar_url) return info;
+  }
+  // 解析 JWT
+  try {
+    const token = session && session.access_token;
+    if (!token) return info;
+    const parts = token.split('.');
+    if (parts.length !== 3) return info;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
+    info.email = payload.email || payload.user_email || info.email;
+    const um = payload.user_metadata || {};
+    info.avatar_url = um.avatar_url || payload.picture || info.avatar_url;
+  } catch (e) {}
+  return info;
 }
 
 // 切换 Tab
@@ -93,17 +237,22 @@ async function switchTab(tabName) {
     elements.favoritesTab.classList.add('active');
     await loadFavorites();
   }
+  await updateAuthUI();
 }
 
 // 检查当前页面
 async function checkCurrentPage() {
   const result = await chrome.storage.local.get('currentUsername');
   currentUsername = result.currentUsername;
+  const session = await getSession();
   
   if (!currentUsername) {
     showNotProfile();
+  } else if (!session) {
+    // 未登录：展示登录提示卡片
+    showAuthRequired();
   } else {
-    // 检测到用户主页，显示"找相似"按钮，等待用户点击
+    // 已登录：显示"找相似"按钮，等待用户点击
     showReadyToStart();
   }
 }
@@ -114,10 +263,20 @@ function showReadyToStart() {
   elements.readyToStart.style.display = 'block';
   elements.stats.style.display = 'none';
   elements.currentUser.style.display = 'none';
+  // 根据登录状态更新按钮可用性
+  if (typeof updateAuthUI === 'function') {
+    updateAuthUI();
+  }
 }
 
 // 开始搜索相似用户
 async function handleStartSearch() {
+  const session = await getSession();
+  if (!session) {
+    alert('请先登录');
+    await updateAuthUI();
+    return;
+  }
   if (currentUsername) {
     isSearching = true; // 开始筛选
     await loadSimilarUsers(currentUsername);
@@ -150,7 +309,20 @@ function hideAllStatus() {
   elements.loading.style.display = 'none';
   elements.error.style.display = 'none';
   elements.notProfile.style.display = 'none';
+  if (elements.authRequired) elements.authRequired.style.display = 'none';
   elements.readyToStart.style.display = 'none';
+}
+
+// 显示未登录提示
+function showAuthRequired() {
+  hideAllStatus();
+  if (elements.authRequired) {
+    elements.authRequired.style.display = 'block';
+  }
+  if (elements.btnStartSearch) {
+    elements.btnStartSearch.disabled = true;
+    elements.btnStartSearch.title = '请先登录';
+  }
 }
 
 // 加载相似用户
@@ -202,7 +374,7 @@ async function loadSimilarUsers(username, append = false) {
     }
     
     // 初始模式失败时才显示错误
-    showError('加载失败，请检查后端服务是否运行 🔧');
+    showError(error?.message || '加载失败，请检查后端服务是否运行 🔧');
   }
 }
 
@@ -301,10 +473,13 @@ async function updateStats() {
 // 加载收藏列表
 async function loadFavorites() {
   const favorites = await getFavorites();
+  const session = await getSession();
   
   if (favorites.length === 0) {
     elements.favoritesList.innerHTML = '';
     elements.favoritesEmpty.style.display = 'block';
+    // 同步收藏页操作按钮状态
+    updateFavoritesActionsState(!!(session && session.access_token));
     return;
   }
   
@@ -338,6 +513,10 @@ async function loadFavorites() {
   // 绑定事件
   document.querySelectorAll('.btn-visit').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      if (!session || !session.access_token) {
+        alert('请先登录');
+        return;
+      }
       const url = e.target.dataset.url;
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         if (tabs[0]) {
@@ -349,12 +528,19 @@ async function loadFavorites() {
   
   document.querySelectorAll('.btn-remove').forEach(btn => {
     btn.addEventListener('click', async (e) => {
+      if (!session || !session.access_token) {
+        alert('请先登录');
+        return;
+      }
       const identifier = e.target.dataset.identifier;
       await removeFavorite(identifier);
       await loadFavorites();
       await updateStats();
     });
   });
+
+  // 同步收藏页操作按钮状态
+  updateFavoritesActionsState(!!(session && session.access_token));
 }
 
 // 监听页面可见性变化（侧边栏关闭/隐藏）
@@ -385,4 +571,3 @@ window.addEventListener('beforeunload', () => {
 
 // 启动应用
 init();
-
