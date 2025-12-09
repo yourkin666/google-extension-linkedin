@@ -3,6 +3,85 @@
  * 从当前 LinkedIn 用户主页抓取工作经历和教育经历
  */
 
+// ---------------- 工具函数（文本规范化/日期识别/去重合并） ----------------
+function normalizeText(input) {
+  return (input || '')
+    .replace(/\s+/g, ' ')
+    .replace(/[\u2013\u2014\u2012]/g, '-') // 将 – — 等替换为 -
+    .trim();
+}
+
+function isDateLike(input) {
+  const t = normalizeText(input).toLowerCase();
+  if (!t) return false;
+  // 常见年-年/年.年/包含“年/月/–/-”等
+  return /(\d{4}.*\d{4})|\d{4}|年|月|\-|–|—/.test(t);
+}
+
+function cleanEducationRecord(rec) {
+  const cleaned = {
+    school: normalizeText(rec.school),
+    degree: normalizeText(rec.degree),
+    dates: normalizeText(rec.dates),
+    logo: rec.logo || ''
+  };
+
+  // 学位误判为日期：移动到 dates，或丢弃重复
+  if (isDateLike(cleaned.degree)) {
+    if (!cleaned.dates) cleaned.dates = cleaned.degree;
+    cleaned.degree = '';
+  }
+
+  // 如果 degree 与 school 重复，则去掉 degree
+  if (cleaned.degree && cleaned.school && cleaned.degree.toLowerCase() === cleaned.school.toLowerCase()) {
+    cleaned.degree = '';
+  }
+
+  // 如果 dates 与 school 或 degree 完全相同，保留一次
+  if (cleaned.dates && cleaned.school && cleaned.dates.toLowerCase() === cleaned.school.toLowerCase()) {
+    cleaned.dates = '';
+  }
+  if (cleaned.dates && cleaned.degree && cleaned.dates.toLowerCase() === cleaned.degree.toLowerCase()) {
+    // 既然 dates 与 degree 相同，优先保留 dates，清空 degree
+    cleaned.degree = '';
+  }
+
+  return cleaned;
+}
+
+function makeEducationKey(rec) {
+  const school = normalizeText(rec.school).toLowerCase();
+  const degree = normalizeText(rec.degree).toLowerCase();
+  const dates = normalizeText(rec.dates).toLowerCase();
+
+  // 关键字优先级：school+dates > school+degree > school
+  if (school && dates) return `${school}|${dates}`;
+  if (school && degree) return `${school}|${degree}`;
+  return school || `${degree}|${dates}`; // 极端兜底
+}
+
+function dedupeAndMergeEducations(list) {
+  const map = new Map();
+  for (const rec of list) {
+    const cleaned = cleanEducationRecord(rec);
+    const key = makeEducationKey(cleaned);
+    if (!key) continue;
+
+    if (!map.has(key)) {
+      map.set(key, cleaned);
+    } else {
+      const prev = map.get(key);
+      // 合并非空字段
+      if (!prev.degree && cleaned.degree) prev.degree = cleaned.degree;
+      if (!prev.dates && cleaned.dates) prev.dates = cleaned.dates;
+      if (!prev.school && cleaned.school) prev.school = cleaned.school;
+      if (!prev.logo && cleaned.logo) prev.logo = cleaned.logo;
+      map.set(key, prev);
+    }
+  }
+  return Array.from(map.values());
+}
+
 /**
  * 抓取用户基本信息
  */
@@ -333,7 +412,13 @@ function scrapeEducation() {
             if (schoolLink) {
               const psInLink = Array.from(schoolLink.querySelectorAll('p'));
               if (psInLink.length > 0) school = (psInLink[0].textContent || '').trim();
-              if (psInLink.length > 1) degree = (psInLink[1].textContent || '').trim();
+              if (psInLink.length > 1) {
+                const maybeDegree = (psInLink[1].textContent || '').trim();
+                // 避免把日期当作学位
+                if (!isDateLike(maybeDegree)) {
+                  degree = maybeDegree;
+                }
+              }
             }
 
             // 若未获取到，再从整个卡片中回退：第一个 p 视作学校，第二个 p 视作学位
@@ -355,12 +440,22 @@ function scrapeEducation() {
               }
             }
 
+            // 如果 degree 为空且之前被识别成日期，已在上方过滤；若 degree 仍为空，尝试从剩余 p 里找非日期且不同于 school 的文本
+            if (!degree) {
+              const candidate = allPs
+                .map(p => (p.textContent || '').trim())
+                .map(normalizeText)
+                .find(t => t && t.toLowerCase() !== normalizeText(school).toLowerCase() && !isDateLike(t));
+              if (candidate) degree = candidate;
+            }
+
             if (school || degree) {
               educations.push({ school, degree, dates, logo });
             }
           } catch (_) {}
         });
-        return educations;
+        // 去重与清洗
+        return dedupeAndMergeEducations(educations);
       }
       return educations;
     }
@@ -373,11 +468,20 @@ function scrapeEducation() {
         
         // 学位和专业
         const degreeElement = item.querySelector('.t-14.t-normal span[aria-hidden="true"], .t-14 span[aria-hidden="true"]');
-        const degree = degreeElement ? degreeElement.textContent.trim() : '';
+        let degree = degreeElement ? degreeElement.textContent.trim() : '';
         
         // 时间段
         const dateElement = item.querySelector('.t-14.t-normal.t-black--light span[aria-hidden="true"], .t-14 span[aria-hidden="true"]');
-        const dates = dateElement ? dateElement.textContent.trim() : '';
+        let dates = dateElement ? dateElement.textContent.trim() : '';
+
+        // 纠正常见误判
+        if (degree && isDateLike(degree)) {
+          if (!dates) dates = degree;
+          degree = '';
+        }
+        if (degree && school && normalizeText(degree).toLowerCase() === normalizeText(school).toLowerCase()) {
+          degree = '';
+        }
         
         // 学校logo
         const logoElement = item.querySelector('img');
@@ -396,7 +500,7 @@ function scrapeEducation() {
       }
     });
     
-    return educations;
+    return dedupeAndMergeEducations(educations);
   } catch (error) {
     console.error('抓取教育经历失败:', error);
     return [];
