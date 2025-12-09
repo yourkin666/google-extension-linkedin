@@ -696,9 +696,9 @@ function createBottomRightDraggableButton() {
   const wrapper = document.createElement('div');
   wrapper.id = 'colink-bottom-right-button-wrapper';
   wrapper.style.position = 'fixed';
-  // 默认放在页面右上角
+  // 默认放在页面右上角，向下偏移一些
   wrapper.style.right = '24px';
-  wrapper.style.top = '24px';
+  wrapper.style.top = '64px';
   wrapper.style.zIndex = '2147483647';
 
   // 创建按钮
