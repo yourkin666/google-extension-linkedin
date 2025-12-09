@@ -1,7 +1,7 @@
 /* 浮动面板样式 */
 #colink-floating-panel {
   position: fixed;
-  top: 50%;
+  top: 30%; /* 默认位置再上移（原 50%→40%→30%）*/
   right: 20px;
   transform: translateY(-50%);
   width: 300px;
@@ -47,8 +47,15 @@
   padding: 6px 8px;
   cursor: move;
   user-select: none;
+  -webkit-user-select: none;
+  touch-action: none; /* 便于指针事件拖动 */
   border-radius: 8px 8px 0 0;
   box-shadow: 0 2px 4px rgba(10, 102, 194, 0.15);
+}
+
+/* 拖动时的样式反馈 */
+#colink-floating-panel.dragging {
+  cursor: grabbing;
 }
 
 .header-content {
@@ -652,4 +659,3 @@
 .email-box.skeleton .email-text {
   opacity: 0;
 }
-

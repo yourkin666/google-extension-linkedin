@@ -49,57 +49,81 @@ class FloatingPanel {
     const header = document.getElementById('panel-header');
     if (!header) return;
     
-    header.addEventListener('mousedown', (e) => this.dragStart(e));
-    document.addEventListener('mousemove', (e) => this.drag(e));
-    document.addEventListener('mouseup', () => this.dragEnd());
+    // 使用 pointer 事件，模仿浮动按钮的拖拽体验
+    header.addEventListener('pointerdown', (e) => this.dragStart(e));
+    window.addEventListener('pointermove', (e) => this.drag(e));
+    window.addEventListener('pointerup', (e) => this.dragEnd(e));
   }
   
   dragStart(e) {
-    // 如果点击的是按钮，不触发拖动
-    if (e.target.closest('.btn-minimize') || e.target.closest('.btn-close')) {
-      return;
-    }
-    
-    this.initialX = e.clientX - this.xOffset;
-    this.initialY = e.clientY - this.yOffset;
-    
+    // 仅左键或触摸
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    // 如果点击的是按钮，不触发拖动（预留）
+    if (e.target.closest('.btn-minimize') || e.target.closest('.btn-close')) return;
+
+    // 初始化拖动状态
     this.isDragging = true;
-    this.panel.style.cursor = 'grabbing';
+    this.moved = false;
+    this.panel.classList.add('dragging');
+
+    // 当前矩形，用于切换到 left/top 布局
+    const rect = this.panel.getBoundingClientRect();
+    // 记录指针相对面板左上角的偏移
+    this.offsetX = e.clientX - rect.left;
+    this.offsetY = e.clientY - rect.top;
+
+    // 切换为通过 left/top 控制位置
+    this.panel.style.left = rect.left + 'px';
+    this.panel.style.top = rect.top + 'px';
+    this.panel.style.right = 'auto';
+    this.panel.style.transform = 'none';
+
+    // 存储当前位置
+    this.xOffset = rect.left;
+    this.yOffset = rect.top;
   }
   
   drag(e) {
     if (!this.isDragging) return;
-    
     e.preventDefault();
-    
-    this.currentX = e.clientX - this.initialX;
-    this.currentY = e.clientY - this.initialY;
-    
-    this.xOffset = this.currentX;
-    this.yOffset = this.currentY;
-    
-    // 限制在窗口内
-    const maxX = window.innerWidth - this.panel.offsetWidth;
-    const maxY = window.innerHeight - this.panel.offsetHeight;
-    
-    this.xOffset = Math.max(0, Math.min(this.xOffset, maxX));
-    this.yOffset = Math.max(0, Math.min(this.yOffset, maxY));
-    
-    this.setTranslate(this.xOffset, this.yOffset);
+
+    const dx = e.clientX - (this.xOffset + this.offsetX);
+    const dy = e.clientY - (this.yOffset + this.offsetY);
+    if (!this.moved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
+      this.moved = true;
+    }
+
+    // 面板当前尺寸
+    const rect = this.panel.getBoundingClientRect();
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // 新位置（限制在可视区域内）
+    let newLeft = e.clientX - this.offsetX;
+    let newTop = e.clientY - this.offsetY;
+    const maxLeft = vw - rect.width;
+    const maxTop = vh - rect.height;
+    newLeft = Math.max(0, Math.min(maxLeft, newLeft));
+    newTop = Math.max(0, Math.min(maxTop, newTop));
+
+    this.xOffset = newLeft;
+    this.yOffset = newTop;
+    this.setTranslate(newLeft, newTop);
   }
   
-  dragEnd() {
+  dragEnd(e) {
     if (!this.isDragging) return;
-    
     this.isDragging = false;
-    this.panel.style.cursor = '';
+    this.panel.classList.remove('dragging');
+    // 可按需抑制误触点击（头部目前无点击动作，暂不处理 justDragged）
   }
   
   setTranslate(xPos, yPos) {
-    this.panel.style.transform = `translate(${xPos}px, ${yPos}px)`;
-    this.panel.style.top = '0';
+    // 模仿浮动按钮：使用 left/top 定位，不使用 transform 平移
+    this.panel.style.transform = 'none';
+    this.panel.style.left = xPos + 'px';
+    this.panel.style.top = yPos + 'px';
     this.panel.style.right = 'auto';
-    this.panel.style.left = '0';
   }
   
   
@@ -178,20 +202,24 @@ class FloatingPanel {
   }
   
   setDefaultRightPosition() {
-    // 默认右侧位置
+    // 默认右侧位置（上移一点）
     const rightMargin = 20;
-    const topMargin = (window.innerHeight - this.panel.offsetHeight) / 2;
-    
+    const centered = (window.innerHeight - this.panel.offsetHeight) / 2;
+    const shiftUp = 160; // 上移像素（更多）
+    const topMargin = Math.max(10, centered - shiftUp);
+
     this.xOffset = window.innerWidth - this.panel.offsetWidth - rightMargin;
     this.yOffset = topMargin;
     this.setTranslate(this.xOffset, this.yOffset);
   }
   
   setDefaultLeftPosition() {
-    // 紧贴侧边栏左侧（侧边栏一般宽度约 400px）
+    // 紧贴侧边栏左侧（侧边栏一般宽度约 400px），并上移一点
     const sidePanelWidth = 400; // Chrome 侧边栏默认宽度
     const gap = 10; // 与侧边栏的间距
-    const topMargin = (window.innerHeight - this.panel.offsetHeight) / 2;
+    const centered = (window.innerHeight - this.panel.offsetHeight) / 2;
+    const shiftUp = 160; // 上移像素（更多）
+    const topMargin = Math.max(10, centered - shiftUp);
     
     // 计算位置：从右边开始，减去侧边栏宽度，再减去浮动窗口宽度和间距
     this.xOffset = window.innerWidth - sidePanelWidth - this.panel.offsetWidth - gap;
@@ -320,6 +348,15 @@ class FloatingPanel {
         await this.waitForPageLoad();
         userData = window.scrapeUserProfile ? window.scrapeUserProfile() : {};
       }
+
+      // 工作经历可能异步渲染，若为空，短暂重试一次（或等待节点出现）
+      if (!userData?.experience || userData.experience.length === 0) {
+        await this.waitForExperienceSection();
+        const retry = window.scrapeUserProfile ? window.scrapeUserProfile() : userData;
+        if (retry?.experience && retry.experience.length > 0) {
+          userData = retry;
+        }
+      }
       
       const loadTime = Date.now() - startTime;
       console.log(`CoLink: 数据加载耗时 ${loadTime}ms`);
@@ -351,8 +388,12 @@ class FloatingPanel {
       
       // LinkedIn 是 SPA，需要等待内容真正加载
       const checkContent = () => {
-        // 检查关键元素是否已加载
-        const nameElement = document.querySelector('h1.text-heading-xlarge') || document.querySelector('main h1');
+        // 检查关键元素是否已加载（兼容新旧版）
+        const nameElement = document.querySelector('h1.text-heading-xlarge') // 旧版
+          || document.querySelector('h1.inline.t-24') // 旧版
+          || document.querySelector('h2[class*="_770d8f2b"]') // 新版Redwood
+          || document.querySelector('main h1')
+          || document.querySelector('main h2');
         if (nameElement && nameElement.textContent.trim()) {
           // 找到内容了，清除超时定时器
           if (timeoutId) clearTimeout(timeoutId);
@@ -373,6 +414,27 @@ class FloatingPanel {
       }, 3000); // 从5秒减少到3秒
       
       checkContent();
+    });
+  }
+
+  /**
+   * 等待工作经历区域/卡片渲染（最多 2 秒）
+   */
+  waitForExperienceSection() {
+    return new Promise((resolve) => {
+      const maxWait = 2000;
+      const start = Date.now();
+
+      const check = () => {
+        const hasLegacy = document.querySelector('div#experience');
+        const hasModernRoot = document.querySelector('div[componentkey*="Experience" i]')
+          || Array.from(document.querySelectorAll('div[componentkey]')).some(el => (el.getAttribute('componentkey')||'').toLowerCase().includes('experience'));
+        const hasItems = document.querySelector('div[componentkey^="entity-collection-item"]');
+        if (hasLegacy || hasModernRoot || hasItems) return resolve();
+        if (Date.now() - start >= maxWait) return resolve();
+        setTimeout(check, 150);
+      };
+      check();
     });
   }
   

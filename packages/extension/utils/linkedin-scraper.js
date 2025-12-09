@@ -8,20 +8,35 @@
  */
 function scrapeBasicInfo() {
   try {
-    // 用户名
-    const nameElement = document.querySelector('h1.text-heading-xlarge') || document.querySelector('main h1');
+    // 用户名（兼容新旧版）
+    const nameElement = document.querySelector('h1.text-heading-xlarge') // 旧版大标题
+      || document.querySelector('h1.inline.t-24') // 旧版行内标题
+      || document.querySelector('h1[class*="aULtpaWoUDgsIiUDkPhlwLCRuaeg"]') // 旧版特定类名
+      || document.querySelector('h2[class*="_770d8f2b"]') // 新版Redwood h2标签
+      || document.querySelector('main h1')
+      || document.querySelector('main h2');
     const name = nameElement ? nameElement.textContent.trim() : '';
     
-    // 职位
-    const titleElement = document.querySelector('.text-body-medium.break-words') || document.querySelector('main h1 + * p, main h1 + * div');
+    // 职位（兼容新旧版）
+    const titleElement = document.querySelector('.text-body-medium.break-words') // 旧版
+      || document.querySelector('div.text-body-medium') // 旧版变体
+      || document.querySelector('p[class*="_770d8f2b"][class*="fcc55da4"]') // 新版Redwood
+      || document.querySelector('main h1 + * p, main h1 + * div')
+      || document.querySelector('main h2 + * p');
     const title = titleElement ? titleElement.textContent.trim() : '';
     
-    // 位置
-    const locationElement = document.querySelector('.text-body-small.inline.t-black--light.break-words') || document.querySelector('svg[aria-label*="位置"], svg[aria-label*="Location"]')?.parentElement?.querySelector('span,div');
+    // 位置（兼容新旧版）
+    const locationElement = document.querySelector('.text-body-small.inline.t-black--light.break-words') // 旧版
+      || document.querySelector('span.text-body-small.inline.t-black--light') // 旧版变体
+      || document.querySelector('p[class*="_770d8f2b"][class*="cd2b844a"][class*="bb1558bb"]') // 新版Redwood
+      || document.querySelector('svg[aria-label*="位置"], svg[aria-label*="Location"]')?.parentElement?.querySelector('span,div');
     const location = locationElement ? locationElement.textContent.trim() : '';
     
-    // 头像
-    const avatarElement = document.querySelector('img.pv-top-card-profile-picture__image') || document.querySelector('img[alt*="头像"], img[alt*="profile" i]');
+    // 头像（兼容新旧版）
+    const avatarElement = document.querySelector('img.pv-top-card-profile-picture__image') // 旧版
+      || document.querySelector('img.pv-top-card-profile-picture__image--show') // 旧版变体
+      || document.querySelector('[data-view-name*="profile-top-card-member-photo"] img') // 新版Redwood
+      || document.querySelector('img[alt*="头像"], img[alt*="profile" i]');
     const avatar = avatarElement ? avatarElement.src : '';
     
     return {
@@ -42,249 +57,231 @@ function scrapeBasicInfo() {
 }
 
 /**
- * 抓取工作经历
- * 兼容两种LinkedIn显示格式：
- * 1. 一个公司多个职位：第一行显示公司，下面有多个职位子项
- * 2. 一个公司一个职位：第一行显示职位，第二行显示公司
+ * 抓取工作经历（双轨制实现）
+ * - 方案A（老版/桌面端）：存在 div#experience
+ *   - 根：div#experience
+ *   - 行：li.artdeco-list__item（或 li.pvs-list__item 兜底）
+ *   - 字段：
+ *     - 职位：.t-bold 内的 span
+ *     - 公司：.t-normal 内的 span（若包含“ · ”取左侧公司名）
+ *     - 时间：.t-black--light
+ * - 方案B（新版/移动端）：无 #experience，但存在 div[componentkey*="Experience"]
+ *   - 根：div[componentkey*="Experience"]（大小写不敏感，提供 JS 兜底匹配）
+ *   - 行：div[componentkey^="entity-collection-item"]
+ *   - 字段来自 <a> 内第1/2/3个 <p>：依次为 职位/公司/时间
  */
 function scrapeExperience() {
   try {
-    const experiences = [];
-    
-    // 定位 LinkedIn 的工作经历区域（兼容新版/旧版结构）
-    let experienceSection = document.querySelector('#experience');
-    if (!experienceSection) {
-      // 通过标题文本匹配（多语言）
-      const headingTexts = ['Experience', '工作经历', 'Experiencia', 'Experiência', 'Expérience', 'Erfahrung'];
-      const allHeadings = Array.from(document.querySelectorAll('h2, h3, span, div'));
-      const heading = allHeadings.find(el => {
-        const txt = (el.textContent || '').trim();
-        return headingTexts.some(t => txt === t || txt.startsWith(t + ' '));
-      });
-      if (heading) {
-        experienceSection = heading.closest('section') || heading.parentElement;
-      }
-    }
-    if (!experienceSection) {
-      console.log('CoLink Debug: 未找到工作经历区域');
-      return experiences;
-    }
-    
-    // 找到工作经历列表
-    let root = experienceSection.closest('section') || experienceSection;
-    let experienceList = root.querySelectorAll('li.artdeco-list__item, li.pvs-list__item');
-    
-    // Fallback：有些布局中列表在 section 的后续兄弟节点
-    if (!experienceList || experienceList.length === 0) {
-      const lists = Array.from(document.querySelectorAll('ul.pvs-list'));
-      const headingTexts = ['Experience', '工作经历', 'Experiencia', 'Experiência', 'Expérience', 'Erfahrung'];
-      const candidate = lists.find(ul => {
-        const sec = ul.closest('section');
-        if (!sec) return false;
-        const headingEl = sec.querySelector('h2, h3, span, div');
-        const text = (headingEl?.textContent || '').trim();
-        return headingTexts.some(t => text === t || text.startsWith(t + ' '));
-      });
-      if (candidate) {
-        experienceList = candidate.querySelectorAll('li.artdeco-list__item, li.pvs-list__item');
-      }
-    }
-    
-    if (!experienceList || experienceList.length === 0) {
-      console.log('CoLink Debug: 未找到工作经历列表项');
-      
-      // Redwood 布局兜底：查找基于 componentkey 的卡片项
-      let redwoodItems = Array.from((root || document).querySelectorAll('[componentkey^="entity-collection-item"]'));
-      // 只保留包含公司链接的项
-      redwoodItems = redwoodItems.filter(el => el.querySelector('a[href*="/company/"]'));
-      
-      if (redwoodItems.length > 0) {
-        console.log(`CoLink Debug: Redwood 结构，找到 ${redwoodItems.length} 个经历卡片`);
-        redwoodItems.forEach((item, index) => {
-          try {
-            const companyLink = item.querySelector('a[href*="/company/"]');
-            const companyUrl = companyLink ? companyLink.href : '';
-            const logo = (item.querySelector('img') || {}).src || '';
+    const results = [];
+    const headingTexts = ['Experience', '工作经历', 'Experiencia', 'Experiência', 'Expérience', 'Erfahrung'];
 
-            const ps = Array.from(item.querySelectorAll('p'));
-            const title = (ps[0]?.textContent || '').trim();
-            const companyText = (ps[1]?.textContent || '').trim();
-            const company = companyText ? companyText.split('·')[0].trim() : '';
-            const dates = (ps[2]?.textContent || '').trim();
-            const location = (ps[3]?.textContent || '').trim();
+    // 提取“可见文本”：优先取 [aria-hidden="true"]，否则移除 .visually-hidden 后再取 textContent
+    const pickText = (el) => {
+      if (!el) return '';
+      const prefers = el.querySelectorAll('[aria-hidden="true"]');
+      if (prefers.length > 0) {
+        const t = Array.from(prefers)
+          .map(n => (n.textContent || '').trim())
+          .filter(Boolean)
+          .join(' ')
+          .replace(/\s+/g, ' ')
+          .trim();
+        if (t) return t;
+      }
+      const clone = el.cloneNode(true);
+      try { clone.querySelectorAll('.visually-hidden').forEach(n => n.remove()); } catch (_) {}
+      return (clone.textContent || '').trim();
+    };
+    const safeSplitCompany = (text) => (text || '').split('·')[0].trim();
 
-            if (title || company) {
-              experiences.push({ title, company, dates, location, logo, companyUrl });
-              console.log(`  Redwood ✓ 第 ${index + 1} 项添加: ${title} @ ${company}`);
-            }
-          } catch (err) {
-            console.log('  Redwood 解析失败，跳过一项:', err);
-          }
+    const pushIfValid = (payload) => {
+      const title = (payload.title || '').trim();
+      const company = (payload.company || '').trim();
+      if (title || company) results.push(payload);
+    };
+
+    // A轨：老版存在 #experience
+    const legacyRoot = document.querySelector('div#experience');
+    if (legacyRoot) {
+      console.log('CoLink Debug: 使用方案A（#experience）');
+      let items = legacyRoot.querySelectorAll('li.artdeco-list__item, li.pvs-list__item');
+
+      // 若直接未命中，基于标题的 section 兜底
+      if (!items || items.length === 0) {
+        const candidateLists = Array.from(document.querySelectorAll('ul, ol'));
+        const candidate = candidateLists.find((ul) => {
+          const sec = ul.closest('section, div');
+          if (!sec) return false;
+          const headingEl = sec.querySelector('h2, h3, [class*="header" i], [class*="title" i]');
+          const text = pickText(headingEl);
+          return headingTexts.some((t) => text === t || text.startsWith(t + ' '));
         });
-        return experiences;
+        if (candidate) items = candidate.querySelectorAll('li');
       }
 
-      // 兜底：在全页范围内查找含公司链接的 li
-      const allItems = Array.from(document.querySelectorAll('li'));
-      const filtered = allItems.filter(li => li.querySelector('a[href*="/company/"]'));
-      if (filtered.length === 0) return experiences;
-      experienceList = filtered;
-    }
-    
-    console.log(`CoLink Debug: 找到 ${experienceList.length} 个工作经历项`);
-    
-    experienceList.forEach((item, index) => {
-      try {
-        console.log(`\n=== CoLink Debug: 解析第 ${index + 1} 个工作经历 ===`);
-        
-        // 检查是否有子列表（表示一个公司多个职位）
-        const subList = item.querySelector('ul.pvs-list, ul.artdeco-list');
-        
-        if (subList) {
-          console.log('CoLink Debug: 检测到多职位格式（有子列表）');
-          
-          // 情况1: 一个公司多个职位
-          // 第一行是公司名称
-          const companyElement = item.querySelector('.mr1.t-bold span[aria-hidden="true"], .t-bold span[aria-hidden="true"]');
-          const company = companyElement ? companyElement.textContent.trim() : '';
-          console.log('  公司:', company);
-          
-          // 公司logo
-          const logoElement = item.querySelector('img');
-          const logo = logoElement ? logoElement.src : '';
-          console.log('  Logo:', logo ? '✓' : '✗');
-          
-          // 公司链接
-          const companyLinkElement = item.querySelector('a[href*="/company/"]');
-          const companyUrl = companyLinkElement ? companyLinkElement.href : '';
-          console.log('  公司链接:', companyUrl ? '✓' : '✗');
-          
-          // 获取所有子职位
-          const subItems = subList.querySelectorAll('li.artdeco-list__item, li.pvs-list__item');
-          console.log(`  找到 ${subItems.length} 个子职位`);
-          
-          if (subItems.length > 0) {
-            // 选择第一个职位（最近的职位）
-            const firstSubItem = subItems[0];
-            
-            // 职位名称
-            const titleElement = firstSubItem.querySelector('.mr1.t-bold span[aria-hidden="true"], .t-bold span[aria-hidden="true"]');
-            const title = titleElement ? titleElement.textContent.trim() : '';
-            console.log('  职位:', title);
-            
-            // 时间段
-            const dateElement = firstSubItem.querySelector('.t-14.t-normal.t-black--light span[aria-hidden="true"], .t-14 span[aria-hidden="true"]');
-            const dates = dateElement ? dateElement.textContent.trim() : '';
-            console.log('  时间:', dates);
-            
-            // 地点
-            let locationElement = firstSubItem.querySelector('.t-14.t-normal.t-black--light:not(:has(time))');
-            if (!locationElement) {
-              // 新版可能用另一套 class
-              const spans = Array.from(firstSubItem.querySelectorAll('.t-14 span[aria-hidden="true"]'));
-              locationElement = spans.find(sp => /\p{L}/u.test((sp.textContent || '').trim())) || null;
-            }
-            const location = locationElement ? locationElement.textContent.trim() : '';
-            console.log('  地点:', location);
-            
-            if (title || company) {
-              experiences.push({
-                title,
-                company,
-                dates,
-                location,
-                logo,
-                companyUrl
-              });
-              console.log('  ✓ 成功添加');
-            } else {
-              console.log('  ✗ 跳过（无职位或公司名）');
-            }
-          }
-        } else {
-          console.log('CoLink Debug: 检测到单职位格式（无子列表）');
-          
-          // 情况2: 一个公司一个职位
-          // LinkedIn结构：职位(粗体) -> 公司 · 工作类型 -> 时间段 -> 地点
-          
-          // 第一行是职位名称（粗体）
-          const titleElement = item.querySelector('.mr1.t-bold span[aria-hidden="true"], .t-bold span[aria-hidden="true"]');
-          const title = titleElement ? titleElement.textContent.trim() : '';
-          console.log('  职位:', title);
-          
-          // 获取所有普通文本的span（按顺序）
-          const allSpans = item.querySelectorAll('.t-14.t-normal span[aria-hidden="true"], .t-14 span[aria-hidden="true"]');
-          console.log(`  找到 ${allSpans.length} 个信息span`);
-          
-          // 第一个span通常是：公司名称 · 工作类型
-          // 需要提取公司名称（去掉 · 及后面的内容）
-          let company = '';
-          let dates = '';
-          
-          if (allSpans.length > 0) {
-            const companyText = allSpans[0].textContent.trim();
-            // 分割 "公司名 · 工作类型"，只保留公司名
-            company = companyText.split('·')[0].trim();
-            console.log('  公司:', company);
-            console.log('  原始公司文本:', companyText);
-          }
-          
-          // 第二个span通常是时间段（包含日期或"个月"/"年"）
-          if (allSpans.length > 1) {
-            dates = allSpans[1].textContent.trim();
-            console.log('  时间:', dates);
-          }
-          
-          // 地点信息在另一个位置
-          // 方法：找到包含地点的span（通常不在.t-black--light中，或者是最后一个独立的文本）
-          let location = '';
-          if (allSpans.length > 2) {
-            // 尝试获取第三个span（可能是地点）
-            location = allSpans[2].textContent.trim();
-            // 如果第三个span和dates一样（重复），尝试其他方式
-            if (location === dates) {
-              location = '';
-            }
-            console.log('  地点:', location);
-          }
-          
-          // 公司logo
-          const logoElement = item.querySelector('img');
-          const logo = logoElement ? logoElement.src : '';
-          console.log('  Logo:', logo ? '✓' : '✗');
-          
-          // 公司链接
-          const companyLinkElement = item.querySelector('a[href*="/company/"]');
-          const companyUrl = companyLinkElement ? companyLinkElement.href : '';
-          console.log('  公司链接:', companyUrl ? '✓' : '✗');
-          
-          if (title || company) {
-            experiences.push({
-              title,
-              company,
-              dates,
-              location,
-              logo,
-              companyUrl
-            });
-            console.log('  ✓ 成功添加');
-          } else {
-            console.log('  ✗ 跳过（无职位或公司名）');
-          }
-        }
-        
-        // 打印元素的HTML结构供调试
-        console.log('  HTML结构:', item.innerHTML.substring(0, 200) + '...');
-        
-      } catch (error) {
-        console.error(`CoLink Debug: 解析第 ${index + 1} 个工作经历失败:`, error);
+      // 再兜底：该区域内所有 li 且包含公司链接
+      if (!items || items.length === 0) {
+        const scope = legacyRoot.closest('section') || legacyRoot.parentElement || document;
+        const fallbackLis = Array.from(scope.querySelectorAll('li'))
+          .filter((li) => li.querySelector && li.querySelector('a[href*="/company/"]'));
+        items = fallbackLis;
       }
-    });
-    
-    console.log(`\nCoLink Debug: 最终提取到 ${experiences.length} 个工作经历`);
-    console.log('CoLink Debug: 提取结果:', experiences);
-    
-    return experiences;
+
+      console.log(`CoLink Debug: A轨 列表项数量=${items.length}`);
+      items.forEach((item) => {
+        try {
+          const subList = item.querySelector('ul, ol');
+          const titleEl = item.querySelector('.t-bold span[aria-hidden="true"], .t-bold span, .t-bold');
+          const companyEl = item.querySelector('.t-14.t-normal span[aria-hidden="true"], .t-14.t-normal span, .t-14.t-normal');
+          // 日期优先取 caption 包装器，再取黑色淡色文本
+          const dateEl = item.querySelector('.pvs-entity__caption-wrapper, .t-black--light, .t-14.t-normal.t-black--light');
+          const logoEl = item.querySelector('img');
+          const companyLinkEl = item.querySelector('a[href*="/company/"]');
+
+          let title = pickText(titleEl);
+          let companyText = pickText(companyEl);
+          let company = safeSplitCompany(companyText);
+          let dates = pickText(dateEl);
+          const logo = logoEl ? logoEl.src : '';
+          const companyUrl = companyLinkEl ? companyLinkEl.href : '';
+
+          // 若存在子列表，取第一个子职位填充字段
+          if (subList) {
+            const firstSub = subList.querySelector('li');
+            const subTitleEl = firstSub?.querySelector('.t-bold span[aria-hidden="true"], .t-bold span, .t-bold');
+            const subDateEl = firstSub?.querySelector('.pvs-entity__caption-wrapper, .t-black--light, .t-14.t-normal.t-black--light');
+            if (!title) title = pickText(subTitleEl);
+            if (!dates) dates = pickText(subDateEl);
+
+            
+          }
+
+          pushIfValid({ title, company, dates, logo, companyUrl });
+        } catch (_) {}
+      });
+
+      // 仅当 A 轨解析到数据时返回，否则继续尝试 B 轨
+      if (results.length > 0) return results;
+      console.log('CoLink Debug: A轨未解析到数据，继续尝试B轨');
+    }
+
+    // B轨：新版存在 componentkey*="Experience" 的容器
+    let modernRoot = document.querySelector('div[componentkey*="Experience" i]');
+    if (!modernRoot) {
+      // 兜底：手动大小写不敏感匹配
+      const all = Array.from(document.querySelectorAll('div[componentkey]'));
+      modernRoot = all.find(el => {
+        const val = (el.getAttribute('componentkey') || '').toLowerCase();
+        return val.includes('experience');
+      }) || null;
+    }
+
+    if (modernRoot) {
+      console.log('CoLink Debug: 使用方案B（componentkey*="Experience"）');
+      let items = modernRoot.querySelectorAll('div[componentkey^="entity-collection-item"]');
+
+      // 若未命中，放宽匹配：该根下所有含公司链接的卡片节点
+      if (!items || items.length === 0) {
+        const candidates = Array.from(modernRoot.querySelectorAll('[componentkey], div, li'))
+          .filter((el) => el.querySelector && el.querySelector('a[href*="/company/"]'));
+        items = candidates;
+      }
+
+      // 仍为空，再全局兜底：所有 entity-collection-item
+      if (!items || items.length === 0) {
+        items = document.querySelectorAll('div[componentkey^="entity-collection-item"]');
+      }
+
+      console.log(`CoLink Debug: B轨 列表项数量=${items.length}`);
+      items.forEach((item, idx) => {
+        try {
+          // 选择包含文本 <p> 的链接（跳过仅有 logo 的第一个链接）
+          const anchors = Array.from(item.querySelectorAll('a[href]'));
+          let link = anchors.find(a => a.querySelector('p')) || anchors[1] || anchors[0] || item;
+          const ps = Array.from(link.querySelectorAll('p'));
+
+          let title = pickText(ps[0]);
+          let companyText = pickText(ps[1]);
+          let company = safeSplitCompany(companyText);
+          let dates = pickText(ps[2]);
+          const logo = (item.querySelector('img') || {}).src || '';
+          const companyUrl = (anchors.find(a => /\/company\//.test(a.getAttribute('href') || '')) || {}).href || '';
+
+          // 进一步兜底：若 p[2] 不是日期，尝试查找含年份或连接符的 p
+          if (!dates) {
+            const dateLike = ps.find((p) => /\d{4}|年|月|\-|–/.test(pickText(p)));
+            dates = pickText(dateLike);
+          }
+
+          // 若 p 未能命中，再从整项里兜底抓取
+          if (!title) {
+            title = pickText(item.querySelector('.t-bold span[aria-hidden="true"], .t-bold span, .t-bold')) || title;
+          }
+          if (!company) {
+            companyText = pickText(item.querySelector('.t-14.t-normal span[aria-hidden="true"], .t-14.t-normal span, .t-14.t-normal')) || companyText;
+            company = safeSplitCompany(companyText);
+          }
+          if (!dates) {
+            dates = pickText(item.querySelector('.pvs-entity__caption-wrapper, .t-black--light, .t-14.t-normal.t-black--light')) || dates;
+          }
+          pushIfValid({ title, company, dates, logo, companyUrl });
+        } catch (_) {}
+      });
+      return results;
+    }
+
+    // 未识别到根节点，进行全局兜底：
+    console.warn('CoLink Debug: 未识别到工作经历根节点（A/B），尝试全局兜底');
+
+    // 兜底1：全局 entity-collection-item
+    let anyItems = document.querySelectorAll('div[componentkey^="entity-collection-item"]');
+    if (anyItems && anyItems.length > 0) {
+      console.log(`CoLink Debug: 兜底 entity-collection-item 数量=${anyItems.length}`);
+      anyItems.forEach((item) => {
+        try {
+          const link = item.querySelector('a[href]') || item;
+          const ps = Array.from(link.querySelectorAll('p'));
+          let title = pickText(ps[0]);
+          const companyText = pickText(ps[1]);
+          const company = safeSplitCompany(companyText);
+          let dates = pickText(ps[2]);
+          if (!dates) {
+            const dateLike = ps.find((p) => /\d{4}|年|月|\-|–/.test(pickText(p)));
+            dates = pickText(dateLike);
+          }
+          const logo = (item.querySelector('img') || {}).src || '';
+          const companyUrl = (item.querySelector('a[href*="/company/"]') || {}).href || '';
+          pushIfValid({ title, company, dates, logo, companyUrl });
+        } catch (_) {}
+      });
+      return results;
+    }
+
+    // 兜底2：全局 li 含公司链接
+    const liAll = Array.from(document.querySelectorAll('li')).filter((li) => li.querySelector('a[href*="/company/"]'));
+    if (liAll.length > 0) {
+      console.log(`CoLink Debug: 兜底 li[a*="/company/"] 数量=${liAll.length}`);
+      liAll.forEach((item) => {
+        try {
+          const titleEl = item.querySelector('.t-bold span[aria-hidden="true"], .t-bold span, .t-bold');
+          const companyEl = item.querySelector('.t-14.t-normal span[aria-hidden="true"], .t-14.t-normal span, .t-14.t-normal');
+          const dateEl = item.querySelector('.t-black--light, .t-14.t-normal.t-black--light');
+          const logoEl = item.querySelector('img');
+          const companyLinkEl = item.querySelector('a[href*="/company/"]');
+
+          const title = pickText(titleEl) || pickText(item.querySelector('p'));
+          const company = safeSplitCompany(pickText(companyEl) || pickText(item.querySelectorAll('p')[1]));
+          const dates = pickText(dateEl) || pickText(item.querySelectorAll('p')[2]);
+          const logo = logoEl ? logoEl.src : '';
+          const companyUrl = companyLinkEl ? companyLinkEl.href : '';
+          pushIfValid({ title, company, dates, logo, companyUrl });
+        } catch (_) {}
+      });
+      return results;
+    }
+
+    console.warn('CoLink Debug: 全部兜底失败，返回空数组');
+    return results;
   } catch (error) {
     console.error('CoLink Debug: 抓取工作经历失败:', error);
     return [];

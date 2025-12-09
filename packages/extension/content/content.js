@@ -237,33 +237,8 @@ function createFloatingButton() {
     return;
   }
 
-  // 尝试创建头像右侧按钮
-  const insertButton = () => {
-    buttonRetryCount++;
-    
-    if (buttonRetryCount > MAX_BUTTON_RETRY) {
-      console.log('CoLink: 达到最大重试次数，尝试备选位置');
-      // 备选方案：放在用户名旁边
-      const fallbackSuccess = createNameSideButton();
-      if (!fallbackSuccess) {
-        console.error('CoLink: 所有按钮放置策略都失败了');
-      }
-      return;
-    }
-
-    const success = createAvatarSideButton();
-    if (success) {
-      console.log('CoLink: 按钮已成功创建在头像右侧');
-      return;
-    }
-
-    // 重试
-    console.log('CoLink: 头像未找到，重试中...', buttonRetryCount);
-    setTimeout(insertButton, 500);
-  };
-
-  buttonRetryCount = 0;
-  insertButton();
+  // 简化方案：创建右下角可拖动按钮
+  createBottomRightDraggableButton();
 }
 
 /**
@@ -285,7 +260,9 @@ function removeFloatingButton() {
   // 清理所有可能的按钮包装器
   const wrapperIds = [
     'colink-avatar-side-button-wrapper',
-    'colink-name-side-button-wrapper'
+    'colink-name-side-button-wrapper',
+    'colink-topcard-button-wrapper',
+    'colink-bottom-right-button-wrapper'
   ];
   
   wrapperIds.forEach(id => {
@@ -297,17 +274,138 @@ function removeFloatingButton() {
 }
 
 /**
+ * 判断是否为 Redwood（Server-Driven UI）Topcard 页面
+ */
+function isRedwoodTopcard() {
+  return !!document.querySelector('[componentkey*="Topcard" i], [componentkey*="top-card" i], [data-view-name*="profile-top-card" i], [data-view-name*="profile-card" i]');
+}
+
+function findTopcardContainer() {
+  // 优先：完整的 profile-card 容器（若存在）
+  let el = document.querySelector('[data-view-name*="profile-card" i]');
+  if (el) return el;
+
+  // 其次：Topcard 相关 componentkey（两种拼写）
+  el = document.querySelector('[componentkey*="Topcard" i]') || document.querySelector('[componentkey*="top-card" i]');
+  if (el) {
+    // 尝试提升到含有姓名标题的父容器，保证覆盖范围更大
+    const nameEl = document.querySelector('h1.inline, h1[class*="t-24"], h1[class*="text-heading"], h2[class*="f1774190"]');
+    let cur = el;
+    while (cur && cur !== document.body) {
+      if (nameEl && cur.contains(nameEl)) return cur;
+      cur = cur.parentElement;
+    }
+    return el;
+  }
+
+  // 再次：profile-top-card 派生的 data-view-name
+  el = document.querySelector('[data-view-name*="profile-top-card" i]');
+  if (el) {
+    // 取其包含姓名标题的上层容器
+    const nameEl = document.querySelector('h1.inline, h1[class*="t-24"], h1[class*="text-heading"], h2[class*="f1774190"]');
+    let cur = el;
+    while (cur && cur !== document.body) {
+      if (nameEl && cur.contains(nameEl)) return cur;
+      cur = cur.parentElement;
+    }
+    return el;
+  }
+
+  // 兜底：若头像与姓名都存在，寻找它们的最近公共父容器
+  const avatarEl = document.querySelector('[data-view-name*="profile-top-card-member-photo" i] img, img.pv-top-card-profile-picture__image');
+  const nameEl = document.querySelector('h1.inline, h1[class*="t-24"], h1[class*="text-heading"], h2[class*="f1774190"]');
+  if (avatarEl && nameEl) {
+    let cur = avatarEl.closest('section, div');
+    while (cur && cur !== document.body) {
+      if (cur.contains(nameEl)) return cur;
+      cur = cur.parentElement;
+    }
+  }
+  return null;
+}
+
+/**
+ * Topcard 覆盖按钮（新版/Redwood）：绝对定位在资料卡右上角
+ */
+function createTopcardOverlayButton() {
+  const container = findTopcardContainer();
+  if (!container) {
+    return false;
+  }
+
+  // 确保基础样式已加载
+  ensureButtonBaseStyles();
+
+  // 添加样式（只添加一次）
+  if (!document.getElementById('colink-topcard-button-style')) {
+    const style = document.createElement('style');
+    style.id = 'colink-topcard-button-style';
+    style.textContent = `
+      #colink-topcard-button-wrapper {
+        position: absolute !important;
+        top: 16px !important;
+        right: 16px !important;
+        z-index: 1000 !important;
+        pointer-events: auto !important;
+      }
+      @media (max-width: 768px) {
+        #colink-topcard-button-wrapper { top: 12px !important; right: 12px !important; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  // 让容器成为定位上下文
+  const computedStyle = window.getComputedStyle(container);
+  if (computedStyle.position === 'static') {
+    container.style.position = 'relative';
+  }
+
+  // 创建按钮元素
+  floatingButton = document.createElement('button');
+  floatingButton.id = 'colink-floating-button';
+  floatingButton.className = 'colink-similarity-button';
+  floatingButton.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span>CoLink找相似</span>
+  `;
+
+  floatingButton.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (chrome.runtime?.id) {
+      chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' }, () => {});
+    }
+  });
+
+  // 包装器
+  const wrapper = document.createElement('div');
+  wrapper.id = 'colink-topcard-button-wrapper';
+  wrapper.appendChild(floatingButton);
+
+  // 插入容器
+  container.appendChild(wrapper);
+  return true;
+}
+
+/**
  * 头像右侧按钮（固定在头像右边）
  */
 function createAvatarSideButton() {
   console.log('CoLink: [DEBUG] 开始查找头像容器...');
   
-  // 策略1：通过已知的类名查找
+  // 策略1：通过已知的类名和属性查找（兼容新旧版）
   let avatarContainer = document.querySelector('.pv-top-card__photo-wrapper')
     || document.querySelector('.pv-top-card-profile-picture')
+    || document.querySelector('.pv-top-card-profile-picture__container') // 旧版按钮容器
     || document.querySelector('.pv-top-card__profile-photo-container')
     || document.querySelector('.profile-photo-edit__preview')
-    || document.querySelector('[data-test-profile-photo-wrapper]');
+    || document.querySelector('[data-test-profile-photo-wrapper]')
+    || document.querySelector('[data-view-name*="profile-top-card-member-photo"]'); // 新版Redwood
   
   console.log('CoLink: [DEBUG] 策略1结果:', avatarContainer);
 
@@ -353,12 +451,15 @@ function createAvatarSideButton() {
     }
   }
   
-  // 策略2.5：通过特定选择器查找
+  // 策略2.5：通过特定选择器查找（兼容新旧版）
   if (!avatarContainer) {
     const avatarImgSelectors = [
-      'img.pv-top-card-profile-picture__image',
+      'img.pv-top-card-profile-picture__image', // 旧版
+      'img.pv-top-card-profile-picture__image--show', // 旧版变体
       'img.profile-photo-edit__preview',
       'img.pv-top-card__photo',
+      '[data-view-name*="profile-top-card-member-photo"] img', // 新版Redwood
+      'button.pv-top-card-profile-picture__container img', // 旧版按钮内的图片
       'button img[width="200"]',
       'main img[width="200"]'
     ];
@@ -489,9 +590,13 @@ function createAvatarSideButton() {
 function createNameSideButton() {
   console.log('CoLink: [DEBUG] 尝试备选方案：用户名右侧');
   
-  // 查找用户名标题
-  const nameElement = document.querySelector('h1.text-heading-xlarge')
+  // 查找用户名标题（兼容新旧版）
+  const nameElement = document.querySelector('h1.text-heading-xlarge') // 旧版大标题
+    || document.querySelector('h1.inline.t-24') // 旧版行内标题
+    || document.querySelector('h1[class*="aULtpaWoUDgsIiUDkPhlwLCRuaeg"]') // 旧版特定类名
+    || document.querySelector('h2[class*="_770d8f2b"]') // 新版Redwood h2标签
     || document.querySelector('main h1')
+    || document.querySelector('main h2')
     || document.querySelector('h1[class*="heading"]')
     || document.querySelector('.pv-text-details__left-panel h1');
     
@@ -554,6 +659,157 @@ function createNameSideButton() {
 
 // 已删除：createTitleAnchoredButton、createHeadlineAnchoredButton、createAvatarAnchoredButton
 // 现在只使用可拖动的右下角按钮
+
+/**
+ * 右下角可拖动按钮
+ */
+function ensureBottomRightButtonStyles() {
+  if (document.getElementById('colink-bottom-right-button-style')) return;
+  const style = document.createElement('style');
+  style.id = 'colink-bottom-right-button-style';
+  style.textContent = `
+    #colink-bottom-right-button-wrapper {
+      position: fixed;
+      z-index: 2147483647; /* 始终顶层 */
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: none; /* 便于拖动 */
+    }
+
+    #colink-bottom-right-button-wrapper.dragging {
+      cursor: grabbing !important;
+    }
+  `;
+  document.head.appendChild(style);
+}
+
+function createBottomRightDraggableButton() {
+  ensureButtonBaseStyles();
+  ensureBottomRightButtonStyles();
+
+  // 若已存在旧包装器，先清理
+  const existing = document.getElementById('colink-bottom-right-button-wrapper');
+  if (existing && existing.parentNode) {
+    existing.parentNode.removeChild(existing);
+  }
+
+  const wrapper = document.createElement('div');
+  wrapper.id = 'colink-bottom-right-button-wrapper';
+  wrapper.style.position = 'fixed';
+  // 默认放在页面右上角
+  wrapper.style.right = '24px';
+  wrapper.style.top = '24px';
+  wrapper.style.zIndex = '2147483647';
+
+  // 创建按钮
+  floatingButton = document.createElement('button');
+  floatingButton.id = 'colink-floating-button';
+  floatingButton.className = 'colink-similarity-button';
+  floatingButton.innerHTML = `
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <span>CoLink找相似</span>
+  `;
+
+  let justDragged = false;
+  floatingButton.addEventListener('click', (e) => {
+    if (justDragged) {
+      // 刚刚拖拽结束，抑制一次点击
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    if (chrome.runtime?.id) {
+      chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' }, () => {});
+    }
+  });
+
+  wrapper.appendChild(floatingButton);
+  document.body.appendChild(wrapper);
+
+  // 拖拽逻辑（pointer 事件，支持鼠标与触摸）
+  let isDragging = false;
+  let startX = 0;
+  let startY = 0;
+  let offsetX = 0;
+  let offsetY = 0;
+  let moved = false;
+
+  const onPointerDown = (e) => {
+    // 仅左键或触摸
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
+    isDragging = true;
+    moved = false;
+    justDragged = false;
+    wrapper.classList.add('dragging');
+    const rect = wrapper.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    offsetX = e.clientX - rect.left;
+    offsetY = e.clientY - rect.top;
+    // 切换为通过 left/top 控制位置
+    wrapper.style.setProperty('left', rect.left + 'px', 'important');
+    wrapper.style.setProperty('top', rect.top + 'px', 'important');
+    wrapper.style.setProperty('right', 'auto', 'important');
+    wrapper.style.setProperty('bottom', 'auto', 'important');
+  };
+
+  const onPointerMove = (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+    if (!moved && (Math.abs(dx) > 2 || Math.abs(dy) > 2)) {
+      moved = true;
+    }
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    const rect = wrapper.getBoundingClientRect();
+    let newLeft = e.clientX - offsetX;
+    let newTop = e.clientY - offsetY;
+    // 约束在可视区域内
+    const maxLeft = vw - rect.width;
+    const maxTop = vh - rect.height;
+    newLeft = Math.max(0, Math.min(maxLeft, newLeft));
+    newTop = Math.max(0, Math.min(maxTop, newTop));
+    wrapper.style.setProperty('left', newLeft + 'px', 'important');
+    wrapper.style.setProperty('top', newTop + 'px', 'important');
+  };
+
+  const onPointerUp = (e) => {
+    if (!isDragging) return;
+    isDragging = false;
+    wrapper.classList.remove('dragging');
+    if (moved) {
+      // 短暂抑制一次点击
+      justDragged = true;
+      setTimeout(() => { justDragged = false; }, 120);
+    }
+  };
+
+  wrapper.addEventListener('pointerdown', onPointerDown);
+  window.addEventListener('pointermove', onPointerMove);
+  window.addEventListener('pointerup', onPointerUp);
+
+  // 兜底：若浏览器将 click 事件目标定向到 wrapper，也进行处理
+  wrapper.addEventListener('click', (e) => {
+    if (justDragged) {
+      e.preventDefault();
+      e.stopPropagation();
+      return;
+    }
+    // 只要点击发生在包装器区域（实际只有按钮），都触发打开侧边栏
+    if (chrome.runtime?.id) {
+      chrome.runtime.sendMessage({ type: 'OPEN_SIDEPANEL' }, () => {});
+    }
+  });
+
+  console.log('CoLink: 已创建右下角可拖动按钮');
+}
 
 /**
  * 强制显示浮动按钮（用于侧边栏关闭后）
