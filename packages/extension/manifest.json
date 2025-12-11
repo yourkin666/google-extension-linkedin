@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "CoLink-领英 Linkedin 查邮箱&找相似",
-  "version": "1.0.4",
+  "version": "1.0.6",
   "description": "Linkedin 查邮箱&找相似，支持递归查找相似用户",
   "permissions": [
     "storage",
@@ -10,6 +10,7 @@
     "sidePanel"
   ],
   "host_permissions": [
+    "https://colink.in/*",
     "https://www.linkedin.com/*",
     "http://localhost:3000/*",
     "https://hmtjgfpnpxdjbxlfqqmc.supabase.co/*"
