@@ -409,3 +409,10 @@ body {
   color: #9ca3af;
   margin: 0;
 }
+
+.footer .version {
+  margin-top: 4px;
+  font-size: 11px;
+  color: #d1d5db;
+  font-weight: 500;
+}

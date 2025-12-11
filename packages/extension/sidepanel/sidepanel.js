@@ -54,6 +54,16 @@ async function init() {
   await checkCurrentPage();
   await updateStats();
   await updateAuthUI();
+  displayVersion();
+}
+
+// 显示版本号
+function displayVersion() {
+  const manifest = chrome.runtime.getManifest();
+  const versionElement = document.getElementById('version-info');
+  if (versionElement && manifest.version) {
+    versionElement.textContent = `v${manifest.version}`;
+  }
 }
 
 // 设置事件监听
