@@ -62,7 +62,7 @@ function displayVersion() {
   const manifest = chrome.runtime.getManifest();
   const versionElement = document.getElementById('version-info');
   if (versionElement && manifest.version) {
-    versionElement.textContent = `v${manifest.version}`;
+    versionElement.textContent = `版本：v${manifest.version}`;
   }
 }
 
