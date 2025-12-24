@@ -8,6 +8,7 @@
     "dev:extension": "pnpm --filter extension dev",
     "build:backend": "pnpm --filter backend build",
     "build:extension": "pnpm --filter extension build",
+    "build:zip": "bash build-zip.sh",
     "dev": "concurrently \"pnpm dev:backend\" \"pnpm dev:extension\""
   },
   "keywords": ["linkedin", "chrome-extension", "recruiter"],
