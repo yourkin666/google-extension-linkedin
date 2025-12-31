@@ -1,0 +1,15 @@
+{
+  "extensionName": {
+    "message": "CoLink - Localizador de emails LinkedIn e Perfis similares",
+    "description": "Nome da extensão"
+  },
+  "extensionDescription": {
+    "message": "Encontre emails e perfis similares no LinkedIn com suporte a busca recursiva",
+    "description": "Descrição da extensão"
+  },
+  "extensionActionTitle": {
+    "message": "Abrir CoLink",
+    "description": "Título do botão da extensão"
+  }
+}
+

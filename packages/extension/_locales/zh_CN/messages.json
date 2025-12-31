@@ -1,0 +1,15 @@
+{
+  "extensionName": {
+    "message": "CoLink-领英 Linkedin 查邮箱&找相似",
+    "description": "扩展名称"
+  },
+  "extensionDescription": {
+    "message": "Linkedin 查邮箱&找相似，支持递归查找相似用户",
+    "description": "扩展描述"
+  },
+  "extensionActionTitle": {
+    "message": "打开 CoLink",
+    "description": "扩展按钮标题"
+  }
+}
+

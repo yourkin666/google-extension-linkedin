@@ -1,0 +1,15 @@
+{
+  "extensionName": {
+    "message": "CoLink - LinkedIn 이메일 찾기 및 유사 프로필 검색",
+    "description": "확장 프로그램 이름"
+  },
+  "extensionDescription": {
+    "message": "LinkedIn에서 이메일 및 유사 프로필 검색, 재귀 검색 지원",
+    "description": "확장 프로그램 설명"
+  },
+  "extensionActionTitle": {
+    "message": "CoLink 열기",
+    "description": "확장 프로그램 버튼 제목"
+  }
+}
+

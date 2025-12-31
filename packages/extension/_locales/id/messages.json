@@ -1,0 +1,15 @@
+{
+  "extensionName": {
+    "message": "CoLink - Pencari Email LinkedIn & Profil Serupa",
+    "description": "Nama ekstensi"
+  },
+  "extensionDescription": {
+    "message": "Temukan email dan profil serupa di LinkedIn dengan dukungan pencarian rekursif",
+    "description": "Deskripsi ekstensi"
+  },
+  "extensionActionTitle": {
+    "message": "Buka CoLink",
+    "description": "Judul tombol ekstensi"
+  }
+}
+

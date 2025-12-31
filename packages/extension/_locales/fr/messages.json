@@ -1,0 +1,15 @@
+{
+  "extensionName": {
+    "message": "CoLink - Recherche d'emails LinkedIn & Profils similaires",
+    "description": "Nom de l'extension"
+  },
+  "extensionDescription": {
+    "message": "Trouvez des emails et des profils similaires sur LinkedIn avec recherche récursive",
+    "description": "Description de l'extension"
+  },
+  "extensionActionTitle": {
+    "message": "Ouvrir CoLink",
+    "description": "Titre du bouton de l'extension"
+  }
+}
+

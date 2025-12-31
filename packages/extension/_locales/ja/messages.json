@@ -1,0 +1,15 @@
+{
+  "extensionName": {
+    "message": "CoLink - LinkedIn メール検索&類似プロフィール検索",
+    "description": "拡張機能名"
+  },
+  "extensionDescription": {
+    "message": "LinkedInでメールアドレスと類似プロフィールを検索、再帰検索に対応",
+    "description": "拡張機能の説明"
+  },
+  "extensionActionTitle": {
+    "message": "CoLinkを開く",
+    "description": "拡張機能ボタンのタイトル"
+  }
+}
+
